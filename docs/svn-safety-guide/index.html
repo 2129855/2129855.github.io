@@ -109,6 +109,7 @@
     <a href="#tier2">Tier 2</a>
     <a href="#tier3">Tier 3</a>
     <a href="#tier4">Tier 4</a>
+    <a href="#switching">Switch branch</a>
     <a href="#branching">R&amp;D branch</a>
     <a href="#recovery">Fixing mistakes</a>
     <a href="#conflicts">Conflicts</a>
@@ -132,6 +133,7 @@
 <tr><td><code class="cmd">svn info</code></td><td>Check which branch and revision you are on</td><td><span class="tag tag1">Tier 1</span></td></tr>
 <tr><td><code class="cmd">svn update</code></td><td>Get other people's changes</td><td><span class="tag tag2">Tier 2</span></td></tr>
 <tr><td><code class="cmd">svn add file</code></td><td>Start tracking a new file</td><td><span class="tag tag2">Tier 2</span></td></tr>
+<tr><td><code class="cmd">svn switch "&lt;branch-address&gt;"</code></td><td>Move your project folder to another branch</td><td><span class="tag tag3">Tier 3</span></td></tr>
 <tr><td><code class="cmd">svn commit -m "message"</code></td><td>Publish your changes to the team</td><td><span class="tag tag4">Tier 4</span></td></tr>
 </table>
 </div>
@@ -144,10 +146,11 @@
 <table>
 <tr><th>Command or situation</th><th>Why to ask first</th></tr>
 <tr><td><code>svn merge</code> (any form)</td><td>It changes many files at once and can create conflicts that take hours to untangle. This includes bringing changes from the main line into your R&amp;D branch, and bringing your R&amp;D work back.</td></tr>
-<tr><td><code>svn switch</code></td><td>It repoints your whole project folder to another branch. With local edits it can conflict. For R&amp;D, use a separate checkout instead (see <a href="#branching">R&amp;D branch</a>).</td></tr>
+<tr><td><code>svn switch</code> with <code>--ignore-ancestry</code>, or a switch that reports conflicts</td><td>The option turns off the safety check against switching to an unrelated location, and conflicts need a developer. Normal switching between branches is covered in <a href="#switching">Switching branches</a>.</td></tr>
 <tr><td><code>svn update -r N</code></td><td>It moves your folder to an old revision. Editing or committing from there causes confusion.</td></tr>
 <tr><td><code>svn update --accept theirs-full</code></td><td>It silently throws away your edits in every conflicted file.</td></tr>
 <tr><td><code>svn upgrade</code></td><td>One-way change. Older SVN tools may no longer open the folder afterwards.</td></tr>
+<tr><td><code>svn cleanup --remove-ignored</code></td><td>It also deletes ignored files such as <code>Library</code> and <code>Temp</code>, which forces a very long Unity rebuild. The normal <code>--remove-unversioned</code> form is covered in Tier 3.</td></tr>
 <tr><td><code>svn delete</code>, <code>move</code>, <code>mkdir</code> or <code>copy</code> on a server address</td><td>These act on the shared server immediately and everyone sees them. The only exception is creating your own R&amp;D branch, as described in <a href="#branching">R&amp;D branch</a>.</td></tr>
 <tr><td><code>svn propset</code>, ignore rules, <code>svn:externals</code></td><td>Project-wide settings. A wrong value affects everyone's checkout.</td></tr>
 <tr><td><code>svn unlock --force</code></td><td>Breaks a lock held by someone else, who could lose work.</td></tr>
@@ -182,7 +185,7 @@
 <div class="tw">
 <table>
 <tr><th>Command</th><th>What it does</th></tr>
-<tr><td><code class="cmd">svn status</code></td><td>Compares your files to the last update and lists what you changed. First-column letters: <code>M</code> modified, <code>A</code> added, <code>D</code> deleted, <code>?</code> not under version control, <code>!</code> missing, <code>C</code> conflict. Reads local data only.</td></tr>
+<tr><td><code class="cmd">svn status</code></td><td>Compares your files to the last update and lists what you changed. First-column letters: <code>M</code> modified, <code>A</code> added, <code>D</code> deleted, <code>?</code> not under version control, <code>!</code> missing, <code>C</code> conflict. Reads local data only. Other letters you may see: <code>X</code> an external (a file or folder the project pulls in from another location; normal, see the glossary) and <code>I</code> ignored, shown only with <code>--no-ignore</code>. A file external shows <code>X</code> in the fifth column.</td></tr>
 <tr><td><code class="cmd">svn status -u</code></td><td>Same list, plus a column marking files changed on the server since your last update. Contacts the server, so it needs your login.</td></tr>
 <tr><td><code class="cmd">svn info</code></td><td>Shows which repository URL, branch and revision your folder is on, and who last changed it. Answers "which branch am I on?"</td></tr>
 <tr><td><code class="cmd">svn log</code></td><td>Shows commit history: revision, author, date and message. <code>-l N</code> limits to N entries, <code>-v</code> lists changed files, <code>-r A:B</code> selects a revision range, <code>--stop-on-copy</code> stops where the branch was created, <code>-q</code> gives a short list.</td></tr>
@@ -192,6 +195,7 @@
 <tr><td><code class="cmd">svn ls &lt;url or path&gt;</code></td><td>Lists files and folders at a location, even on the server, without checking anything out. <code>-v</code> adds revision and author.</td></tr>
 <tr><td><code class="cmd">svn list -R</code></td><td>Same as <code>ls</code>, recursive. Can be very long on a big project, so pipe it into <code>head</code> or <code>less</code>.</td></tr>
 <tr><td><code class="cmd">svn proplist -v</code> / <code>propget</code></td><td>Shows properties attached to files or folders, such as <code>svn:ignore</code>, <code>svn:externals</code> and <code>svn:needs-lock</code>. Viewing is safe. Changing them is for developers.</td></tr>
+<tr><td><code class="cmd">svn propget svn:externals -R .</code></td><td>Lists which folders define externals, the files and folders the project pulls in from other locations. Read-only. Changing externals is a developer job.</td></tr>
 <tr><td><code class="cmd">svn help &lt;command&gt;</code></td><td>Prints full options for any command.</td></tr>
 </table>
 </div>
@@ -208,20 +212,23 @@
 <tr><td><code class="cmd">svn move old new</code></td><td>Renames or moves a file and keeps its history. Prefer it over moving the file in Finder, which makes SVN see one file deleted and another added.</td></tr>
 <tr><td><code class="cmd">svn update</code></td><td>Downloads other people's changes and merges them into your files. If you edited the same lines as someone else you get a conflict (<code>C</code>). Run <code>svn status</code> first.</td></tr>
 <tr><td><code class="cmd">svn export &lt;url&gt; folder</code></td><td>Downloads a clean copy of a branch or folder with no <code>.svn</code> metadata. Writes to a new folder only, so it's harmless.</td></tr>
-<tr><td><code class="cmd">svn cleanup</code></td><td>Repairs your folder after a crash or interrupted update and removes stale locks. Fixes "working copy locked" errors.</td></tr>
+<tr><td><code class="cmd">svn cleanup</code></td><td>Repairs your folder after a crash or interrupted update and removes stale locks. Fixes "working copy locked" errors. Plain <code>svn cleanup</code> only repairs. The <code>--remove-unversioned</code> form deletes files, see Tier 3.</td></tr>
 <tr><td><code class="cmd">svn resolve --accept working file</code></td><td>Tells SVN you've fixed a conflict so it stops flagging it. It doesn't choose the right content for you. Use it only on simple text files you've checked. For scenes, prefabs and binary files, ask a developer first.</td></tr>
 </table>
 </div>
 </section>
 
 <section id="tier3" class="t3 searchable">
-<h2>Tier 3: Risky, can lose your local work</h2>
-<p class="desc">Check <code>svn status</code> before running either of these.</p>
+<h2>Tier 3: Risky, can lose local work or cause conflicts</h2>
+<p class="desc">Check <code>svn status</code> before running any of these.</p>
 <div class="tw">
 <table>
 <tr><th>Command</th><th>What it does and why it's risky</th></tr>
 <tr><td><code class="cmd">svn revert file</code></td><td>Throws away your uncommitted edits and restores the last committed version. <strong>Permanent.</strong> Nothing is saved anywhere, so you can't get your edits back.</td></tr>
 <tr><td><code class="cmd">svn revert -R .</code></td><td>The same for every changed file in the current folder and below. Read the <code>svn status</code> list first.</td></tr>
+<tr><td><code class="cmd">svn switch "&lt;branch-address&gt;"</code></td><td>Points your whole project folder at another branch and downloads the differences. Nothing changes on the server, but local edits can conflict. Follow <a href="#switching">Switching branches</a>: run it from the top folder with Unity closed.</td></tr>
+<tr><td><code class="cmd">svn cleanup --remove-unversioned</code></td><td>Deletes every file SVN doesn't track (the <code>?</code> list) from your computer. <strong>Permanent</strong>, with no Trash. Only your computer is affected, not the server. Preview with <code>svn status | grep '^?'</code>. Check the list for new assets or <code>.meta</code> files you haven't added yet, and for <code>Library</code>, <code>Temp</code> or <code>Logs</code>: if those are listed, SVN isn't ignoring them, so ask a developer first. Needs SVN 1.9 or newer.</td></tr>
+<tr><td><code class="cmd">svn cleanup --remove-unversioned &lt;folder&gt;</code></td><td>The same for one folder only. Preview with <code>svn status &lt;folder&gt; | grep '^?'</code>.</td></tr>
 </table>
 </div>
 </section>
@@ -248,9 +255,48 @@
 <li>Run <code>svn info</code> before committing if you use more than one folder or branch, and check the URL line.</li>
 <li>Before <code>svn revert -R .</code>, read the <code>svn status</code> list, because it's the only warning you get.</li>
 <li>Before anything risky, save your edits with <code>svn diff &gt; my-changes.patch</code>.</li>
+<li>Before <code>svn switch</code>, close Unity and check that <code>svn status</code> shows nothing you'd miss.</li>
 <li>If something looks wrong, or it isn't in this guide, stop and ask. Nothing in Tier 1 or 2 can hurt.</li>
 </ol>
 </div>
+
+<section id="switching" class="t6 prose">
+<h2>Switching branches</h2>
+<p class="desc">Switching points your existing project folder at a different branch and downloads only the differences. Nothing changes on the server, but it changes many files on your computer at once, so follow the steps in order. It is safe when your folder is clean and the address is right.</p>
+
+<h3>Before you switch</h3>
+<ul class="plain">
+<li>Know the exact branch you need. If you aren't sure of the name, ask a developer or check your team's notes.</li>
+<li>Close Unity.</li>
+<li>Open the terminal in the project's top folder, the one you first checked out. Switching a subfolder gives you a mixed copy.</li>
+<li>Make sure <code>svn status</code> shows no edits you would miss. Commit them, or save them with <code>svn diff &gt; my-changes.patch</code>.</li>
+</ul>
+
+<h3>Steps</h3>
+<ol class="steps">
+<li>Write down where you are now: <code class="cmd">svn info --show-item url</code>
+  <br>It prints an address like <code>https://example.com/svn/project/branches/branch-a/MyProject</code>.</li>
+<li>Build the new address by changing <strong>only the branch name</strong> in that address. Keep the start and the end exactly the same, for example <code>https://example.com/svn/project/branches/branch-b/MyProject</code>. To see which branches exist, list the folder that holds them, which is the address up to and including <code>/branches/</code>: <code class="cmd">svn ls "&lt;address-up-to-branches&gt;"</code></li>
+<li>Switch: <code class="cmd">svn switch "&lt;new-address&gt;"</code>
+  <br>Wait until the prompt returns. Don't close the terminal or press Ctrl+C. If it gets interrupted, run <code>svn cleanup</code> and repeat the same switch command.</li>
+<li>Read what scrolls by. <code>U</code>, <code>A</code> and <code>D</code> are normal. <code>UU</code> is also normal: the first letter is for the contents and the second for properties, so it means both were updated. <code>X</code> lines are externals, also normal.</li>
+<li>Check for conflicts: <code class="cmd">svn status | grep -E '^(C|.C|......C)'</code>
+  <br>No output means no conflicts. If anything is listed, stop, don't commit, and ask a developer.</li>
+<li>Check where you are: <code class="cmd">svn info</code> should show the new branch on the URL line.</li>
+<li>Open Unity and let it finish reimporting. Run <code>svn status</code> again before you commit anything.</li>
+</ol>
+
+<h3>Going back</h3>
+<p>Repeat the same steps using the address you wrote down in step 1.</p>
+
+<h3>Notes</h3>
+<ul class="plain">
+<li>If SVN says <code>E195012</code> or "no common ancestry", the address was wrong and nothing changed. See <a href="#errors">Common errors</a>.</li>
+<li>Never add <code>--ignore-ancestry</code>. It turns off the safety check that protects you from switching to an unrelated location.</li>
+<li>Your next commit goes to the branch you're on. Run <code>svn info</code> and check the URL line before committing.</li>
+<li>For R&amp;D experiments, use a separate checkout and not a switch. See <a href="#branching">R&amp;D branch</a>.</li>
+</ul>
+</section>
 
 <section id="branching" class="t6 prose">
 <h2>R&amp;D branch: your own sandbox</h2>
@@ -269,7 +315,7 @@
   <br>This is instant and downloads nothing. Read both addresses twice before pressing Enter, because everyone sees the new branch immediately. If SVN says the destination's parent folder doesn't exist, stop and ask a developer instead of adding options.</li>
 <li>Confirm it exists: <code class="cmd">svn ls "&lt;your-branch-url&gt;"</code> should list the project's files.</li>
 <li>Check it out into a new, clearly named folder: <code class="cmd">svn checkout "&lt;your-branch-url&gt;" project-rnd-yourname</code>
-  <br>Don't use <code>svn switch</code> on your normal project folder. A separate checkout keeps your main work and your R&amp;D apart.</li>
+  <br>Don't use <code>svn switch</code> to start R&amp;D in your normal project folder. A separate checkout keeps your main work and your R&amp;D apart.</li>
 <li>Work in the R&amp;D folder using the <a href="#workflow">daily workflow</a>. Before every commit run <code class="cmd">svn info</code> and check that the URL line ends with your branch name. A commit goes wherever the folder it's run in points.</li>
 <li>When the R&amp;D is finished, or you want to share it, tell a developer. They can review it and merge your branch, or just selected files, into the main line. Ask them to delete the branch when it's no longer needed.</li>
 </ol>
@@ -277,7 +323,7 @@
 <h3>Rules for R&amp;D folders</h3>
 <ul class="plain">
 <li>Give the two folders obvious names, for example <code>project-main</code> and <code>project-rnd-yourname</code>.</li>
-<li>Don't run <code>svn merge</code> or <code>svn switch</code> in either folder. Both are developer jobs.</li>
+<li>Don't run <code>svn merge</code> in either folder, and don't switch the R&amp;D folder to another branch. Merging is a developer job.</li>
 <li>Don't copy files by hand between the two folders to move work across. It can silently overwrite someone's newer work in the main folder. To bring R&amp;D work into main, ask a developer.</li>
 <li>Your branch slowly falls behind the main line. Updating it with newer main-line changes is a merge, so ask a developer. Short experiments rarely need it.</li>
 <li>Commit to your branch as often as you like, but only what you need. Don't commit generated folders (see <a href="#unity">Unity basics</a>).</li>
@@ -303,6 +349,9 @@
 <tr><td>I locked a file and forgot to unlock it</td><td><code class="cmd">svn unlock file</code>
 <p>If someone else holds a lock you need released, ask them or a developer.</p></td></tr>
 <tr><td>I committed something wrong, deleted a file and committed it, or committed to the wrong branch</td><td><strong>Stop and ask a developer.</strong> Don't commit anything else. Tell them three things: the revision number (find it with <code>svn log -l 5</code>), the branch address (the URL line from <code>svn info</code>), and what you meant to do. Whatever you committed stays in history, so it can be reversed.</td></tr>
+<tr><td>SVN shows <code>?</code> files I don't want</td><td><code class="cmd">svn status | grep '^?'</code> lists them. Delete the ones you want gone in Finder, so they go to the Trash. To remove all of them at once use <code>svn cleanup --remove-unversioned</code>, which is permanent (see Tier 3). If there are hundreds, or <code>Library</code> or <code>Temp</code> appear in the list, stop and ask a developer.</td></tr>
+<tr><td>A few files marked <code>X</code> always show in <code>svn status</code></td><td>Nothing to fix. They are file externals, not pending changes, and <code>svn revert</code> can't clear them. Hide them with <code class="cmd">svn status | grep -vE '^.{4}X'</code>. Don't edit or delete them.</td></tr>
+<tr><td>I switched to the wrong branch</td><td>Switch back with the address you wrote down before switching: <code class="cmd">svn switch "&lt;previous-address&gt;"</code>. If you already committed on the wrong branch, don't fix it yourself. Ask a developer.</td></tr>
 <tr><td>An update left conflicts and I'm unsure</td><td>Don't commit. Follow <a href="#conflicts">Fixing conflicts</a>.</td></tr>
 </table>
 </div>
@@ -349,6 +398,7 @@
 <table>
 <tr><th>Message</th><th>What it means and what to do</th></tr>
 <tr><td><code>Working copy locked</code> or <code>E155004</code>, "already locked"</td><td><span class="tag tag1">You can fix</span> A previous command was interrupted. Run <code class="cmd">svn cleanup</code>, then try again.</td></tr>
+<tr><td><code>E195012</code>, "does not share common version control ancestry" or "shares no common ancestry"</td><td><span class="tag tag1">You can fix</span> The address you gave isn't the same kind of folder as your project folder, often because part of the path is missing, such as the project folder at the end. Nothing was changed. Run <code class="cmd">svn info --show-item url</code>, then build the new address by changing only the branch name, and try again. If it still fails, ask a developer. Never add <code>--ignore-ancestry</code>, because that turns the safety check off.</td></tr>
 <tr><td><code>... is out of date</code></td><td><span class="tag tag1">You can fix</span> Someone committed before you. Run <code class="cmd">svn update</code>, deal with any conflicts, then commit again.</td></tr>
 <tr><td><code>... is not a working copy</code></td><td><span class="tag tag1">You can fix</span> You're not inside a project folder. Use <code>cd</code> to go into it and check with <code>svn info</code>.</td></tr>
 <tr><td><code>... is not under version control</code></td><td><span class="tag tag1">You can fix</span> The file is new. Add it with <code class="cmd">svn add file</code>. If the folder is also new, add the folder, which adds what's inside.</td></tr>
@@ -371,7 +421,7 @@
 <tr><th>Tip</th><th>Why it matters</th></tr>
 <tr><td>Commit each <code>.meta</code> file together with its asset. A new folder has its own <code>.meta</code>, so add both.</td><td>Unity stores an asset's GUID in its <code>.meta</code> file. If the file is missing or changes, references to that asset break for everyone.</td></tr>
 <tr><td>Move and rename with <code>svn move</code>, on both the asset and its <code>.meta</code>, ideally with Unity closed. If unsure, ask.</td><td>Moving in Finder makes SVN see one file deleted and one added, and the <code>.meta</code> may not follow.</td></tr>
-<tr><td>Never commit generated folders: <code>Library</code>, <code>Temp</code>, <code>Obj</code>, <code>Logs</code> and usually <code>UserSettings</code>. If they show up as <code>?</code> in <code>svn status</code>, don't add them, and ask a developer to set up ignore rules.</td><td>They are rebuilt automatically, are huge, and cause constant conflicts.</td></tr>
+<tr><td>Never commit generated folders: <code>Library</code>, <code>Temp</code>, <code>Obj</code>, <code>Logs</code> and usually <code>UserSettings</code>. If they show up as <code>?</code> in <code>svn status</code>, don't add them, and ask a developer to set up ignore rules.</td><td>They are rebuilt automatically, are huge, and cause constant conflicts. If they are listed as <code>?</code>, don't run <code>svn cleanup --remove-unversioned</code>, because it would delete them.</td></tr>
 <tr><td>Avoid <code>svn add --force .</code> at the project root.</td><td>It adds every unversioned file below it, including generated folders that aren't ignored. Add specific files or folders instead.</td></tr>
 <tr><td>Lock scenes, prefabs and large binaries before editing them if others might touch them: <code class="cmd">svn lock file</code></td><td>These files merge badly. A lock stops others from committing the file. A normal commit releases the lock for you.</td></tr>
 <tr><td>Close Unity during <code>svn update</code> and when moving or renaming files.</td><td>Unity can regenerate <code>.meta</code> files or reimport assets while SVN is writing files, which causes odd conflicts or missing <code>.meta</code> files.</td></tr>
@@ -390,7 +440,12 @@
 <tr><td><code class="cmd">svn status -q</code></td><td>Lists only tracked files with changes and hides the <code>?</code> files.</td></tr>
 <tr><td><code class="cmd">svn status | grep '^?'</code></td><td>Lists only new files that SVN doesn't track yet.</td></tr>
 <tr><td><code class="cmd">svn status | grep '^!'</code></td><td>Lists only missing files.</td></tr>
-<tr><td><code class="cmd">svn status | grep '^C'</code></td><td>Lists only conflicted files.</td></tr>
+<tr><td><code class="cmd">svn status | grep -E '^(C|.C|......C)'</code></td><td>Lists conflicts of every kind: in file contents, in properties, and tree conflicts. No output means no conflicts.</td></tr>
+<tr><td><code class="cmd">svn status --ignore-externals</code></td><td>Hides folder externals. File externals still show.</td></tr>
+<tr><td><code class="cmd">svn status | grep -vE '^.{4}X'</code></td><td>Hides every <code>X</code> line, including file externals. If it prints nothing, nothing is pending.</td></tr>
+<tr><td><code class="cmd">svn status --no-ignore | grep '^I'</code></td><td>Lists ignored files. A quick way to check that folders like <code>Library</code> are being ignored.</td></tr>
+<tr><td><code class="cmd">svn status &lt;folder&gt;</code></td><td>Limits the status list to one folder.</td></tr>
+<tr><td><code class="cmd">svn ls "&lt;address-up-to-branches&gt;"</code></td><td>Lists the branches on the server, for use with <code>svn switch</code>.</td></tr>
 <tr><td><code class="cmd">svn log -l 10 -v</code></td><td>Shows the last 10 commits with the files each one changed.</td></tr>
 <tr><td><code class="cmd">svn log --search "word" -l 20</code></td><td>Finds commits whose message or author contains a word, and limits the output to 20 entries. Needs SVN 1.8 or newer.</td></tr>
 <tr><td><code class="cmd">svn log --stop-on-copy -q</code></td><td>Lists the revisions on this branch only. The last one is where the branch was created.</td></tr>
@@ -424,6 +479,10 @@
 <tr><td>Conflict</td><td>Two people changed the same file in overlapping ways, and SVN needs a person to choose what to keep.</td></tr>
 <tr><td>Lock</td><td>A claim on a file that stops others from committing it until you release it.</td></tr>
 <tr><td>Property</td><td>A named setting attached to a file or folder, such as <code>svn:ignore</code>.</td></tr>
+<tr><td>External</td><td>A file or folder the project pulls in automatically from another location. Shown as <code>X</code> in <code>svn status</code>. Changing externals is a developer job.</td></tr>
+<tr><td>Unversioned</td><td>A file SVN doesn't track yet. Shown as <code>?</code> in <code>svn status</code>.</td></tr>
+<tr><td>Ignored</td><td>A file SVN is told to skip, such as <code>Library</code>. Shown as <code>I</code> only with <code>--no-ignore</code>.</td></tr>
+<tr><td>Switch</td><td>Pointing your existing project folder at a different branch. See <a href="#switching">Switching branches</a>.</td></tr>
 </table>
 </div>
 </section>
