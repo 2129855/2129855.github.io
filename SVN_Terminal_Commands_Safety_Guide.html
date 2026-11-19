@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SVN Terminal Commands - Safety Guide</title>
+<style>
+  :root { --fg:#1f2328; --muted:#59636e; --bg:#ffffff; --line:#d1d9e0; --code:#f6f8fa; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--fg); background: var(--bg); max-width: 980px; margin: 0 auto; padding: 32px 24px 64px; line-height: 1.5; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  h2 { font-size: 20px; margin: 36px 0 6px; padding: 10px 14px; border-radius: 6px; border-left: 6px solid; }
+  .t1 h2 { background:#e6f6ea; border-color:#1a7f37; }
+  .t2 h2 { background:#e8f1fb; border-color:#0969da; }
+  .t3 h2 { background:#fff4e0; border-color:#bf8700; }
+  .t4 h2 { background:#fdebec; border-color:#cf222e; }
+  .desc { color: var(--muted); margin: 6px 0 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border: 1px solid var(--line); }
+  th { background: #f6f8fa; }
+  td:first-child { width: 31%; white-space: nowrap; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  td:first-child code { white-space: normal; word-break: break-word; }
+  .box { border: 1px solid var(--line); background: #f6f8fa; border-radius: 6px; padding: 12px 18px; margin-top: 32px; }
+  .box h3 { margin: 0 0 6px; font-size: 16px; }
+  .box ol { margin: 6px 0 0; padding-left: 20px; }
+  tr { page-break-inside: avoid; }
+  h2 { page-break-after: avoid; }
+  .foot { color: var(--muted); font-size: 13px; margin-top: 24px; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#e6edf3; --muted:#9198a1; --bg:#0d1117; --line:#3d444d; --code:#161b22; }
+    th { background:#161b22; }
+    .box { background:#161b22; }
+    .t1 h2 { background:#12261a; } .t2 h2 { background:#0c2036; }
+    .t3 h2 { background:#2b2108; } .t4 h2 { background:#2d1215; }
+  }
+  @media print {
+    :root { --fg:#1f2328; --muted:#59636e; --bg:#fff; --line:#d1d9e0; --code:#f6f8fa; }
+    body { max-width: none; padding: 0; font-size: 12px; }
+    .t1 h2 { background:#e6f6ea; } .t2 h2 { background:#e8f1fb; }
+    .t3 h2 { background:#fff4e0; } .t4 h2 { background:#fdebec; }
+    th { background:#f6f8fa; } .box { background:#f6f8fa; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<h1>SVN Terminal Commands - Safety Guide</h1>
+<p class="sub">Commands sorted by how much damage they can do. Run them from inside the project folder, for example <code>/Users/hasingh/_SVN/_Claude/CSR2_CL/RacerUnity</code>.</p>
+
+<section class="t1">
+<h2>Tier 1: Read-only (always safe)</h2>
+<p class="desc">These don't change your files or the repository.</p>
+<table>
+<tr><th>Command</th><th>What it does</th></tr>
+<tr><td><code>svn status</code></td><td>Compares your files to the last update and lists what you changed. First-column letters: <code>M</code> modified, <code>A</code> added, <code>D</code> deleted, <code>?</code> not under version control, <code>!</code> missing, <code>C</code> conflict. Reads local data only.</td></tr>
+<tr><td><code>svn status -u</code></td><td>Same list, plus a column marking files changed on the server since your last update. Contacts the server, so it needs your login.</td></tr>
+<tr><td><code>svn info</code></td><td>Shows which repository URL, branch and revision your working copy is on, and who last changed it. Answers "which branch am I on?"</td></tr>
+<tr><td><code>svn log</code></td><td>Shows commit history: revision, author, date and message. <code>-l N</code> limits to N entries, <code>-v</code> lists changed files, <code>-r A:B</code> selects a revision range, <code>--stop-on-copy</code> stops where the branch was created, <code>-q</code> gives a short list.</td></tr>
+<tr><td><code>svn diff</code></td><td>Prints your uncommitted changes line by line. Add a file name to see one file. <code>-r A:B</code> compares two revisions, <code>-c N</code> shows what revision N changed.</td></tr>
+<tr><td><code>svn blame file</code></td><td>Shows each line of a file with the revision and author who last changed it.</td></tr>
+<tr><td><code>svn cat -r N file</code></td><td>Prints a file as it was at revision N, without touching your copy.</td></tr>
+<tr><td><code>svn ls &lt;url or path&gt;</code></td><td>Lists files and folders at a location, even on the server, without checking anything out. <code>-v</code> adds revision and author.</td></tr>
+<tr><td><code>svn list -R</code></td><td>Same as <code>ls</code>, recursive. Can be very long on a big project, so pipe it into <code>head</code> or <code>less</code>.</td></tr>
+<tr><td><code>svn proplist -v</code> / <code>propget</code></td><td>Shows properties attached to files or folders, such as <code>svn:ignore</code>, <code>svn:externals</code> and <code>svn:needs-lock</code>.</td></tr>
+<tr><td><code>svn mergeinfo</code></td><td>Shows what has been merged between branches. <code>--show-revs eligible</code> lists revisions available to merge, <code>merged</code> lists those already merged.</td></tr>
+<tr><td><code>svn help &lt;command&gt;</code></td><td>Prints full options for any command.</td></tr>
+</table>
+</section>
+
+<section class="t2">
+<h2>Tier 2: Local changes, easy to undo</h2>
+<p class="desc">Nothing reaches the server. You can reverse these before committing.</p>
+<table>
+<tr><th>Command</th><th>What it does</th></tr>
+<tr><td><code>svn add file</code></td><td>Starts tracking a new file. Nothing goes to the server until you commit. Undo with <code>svn revert file</code>.</td></tr>
+<tr><td><code>svn delete file</code></td><td>Marks a tracked file for deletion and removes it locally. The server learns about it at commit. Undo with <code>svn revert file</code> before committing.</td></tr>
+<tr><td><code>svn move old new</code></td><td>Renames or moves a file and keeps its history. Prefer it over moving the file in Finder, which makes SVN see one file deleted and another added.</td></tr>
+<tr><td><code>svn update</code></td><td>Downloads other people's changes and merges them into your files. If you edited the same lines as someone else you get a conflict (<code>C</code>). Run <code>svn status</code> first.</td></tr>
+<tr><td><code>svn export &lt;url&gt; folder</code></td><td>Downloads a clean copy of a branch or folder with no <code>.svn</code> metadata. Writes to a new folder only, so it's harmless.</td></tr>
+<tr><td><code>svn cleanup</code></td><td>Repairs a working copy after a crash or interrupted update and removes stale locks. Fixes "working copy locked" errors.</td></tr>
+<tr><td><code>svn resolve --accept working file</code></td><td>Tells SVN you've fixed a conflict so it stops flagging it. It doesn't choose the right content for you, so make sure the file is correct first.</td></tr>
+</table>
+</section>
+
+<section class="t3">
+<h2>Tier 3: Risky, can lose local work</h2>
+<p class="desc">Check <code>svn status</code> before running any of these.</p>
+<table>
+<tr><th>Command</th><th>What it does and why it's risky</th></tr>
+<tr><td><code>svn revert file</code></td><td>Throws away your uncommitted edits and restores the last committed version. <strong>Permanent.</strong> Nothing is saved anywhere, so you can't get your edits back.</td></tr>
+<tr><td><code>svn revert -R .</code></td><td>The same for every changed file in the current folder and below. Read the <code>svn status</code> list first.</td></tr>
+<tr><td><code>svn merge &lt;url&gt;</code></td><td>Applies changes from another branch to your working copy. Touches many files and may create conflicts. Nothing reaches the server until you commit, but fixing a bad merge can take hours. Preview with <code>svn merge --dry-run &lt;url&gt;</code>.</td></tr>
+<tr><td><code>svn merge -c N &lt;url&gt;</code></td><td>Merges only revision N, often to pull a single fix into your branch.</td></tr>
+<tr><td><code>svn switch &lt;url&gt;</code></td><td>Points your working copy at a different branch and downloads the differences. Conflicts are possible if you have local edits.</td></tr>
+<tr><td><code>svn update --accept theirs-full</code></td><td>Resolves every conflict by taking the server's version and discarding yours, with no warning per file.</td></tr>
+<tr><td><code>svn upgrade</code></td><td>Converts your working copy to the newest format. One-way: older SVN clients or SmartSVN versions may no longer open it.</td></tr>
+</table>
+</section>
+
+<section class="t4">
+<h2>Tier 4: Changes the shared server</h2>
+<p class="desc">Visible to everyone on the team.</p>
+<table>
+<tr><th>Command</th><th>What it does and why it's risky</th></tr>
+<tr><td><code>svn commit -m "message"</code></td><td>Sends your changes to the server as a new revision everyone sees. It can't be erased, only undone with a new reverse commit. Run <code>svn status</code> and <code>svn diff</code> first and write a clear message.</td></tr>
+<tr><td><code>svn copy &lt;url&gt; &lt;url&gt; -m "msg"</code></td><td>Creates a branch or tag directly on the server. Cheap in SVN, but it creates a revision immediately and clutters the repository if the name is wrong.</td></tr>
+<tr><td><code>svn delete &lt;url&gt; -m "msg"</code></td><td>Deletes a file or folder on the server immediately, with no local step. Recoverable from history, but visible to everyone and may break builds.</td></tr>
+<tr><td><code>svn move &lt;url&gt; &lt;url&gt;</code></td><td>Renames or moves on the server immediately.</td></tr>
+<tr><td><code>svn mkdir &lt;url&gt;</code></td><td>Creates a folder on the server immediately.</td></tr>
+<tr><td><code>svn lock file</code></td><td>Prevents others from committing that file until you unlock it. Common for Unity scenes and binary assets. Release it when you're done.</td></tr>
+<tr><td><code>svn unlock --force file</code></td><td>Breaks a lock held by someone else, which could cause them to lose work.</td></tr>
+<tr><td><code>svn propset</code> then commit</td><td>Changes shared settings such as <code>svn:ignore</code> and <code>svn:externals</code>. A wrong value can affect everyone's checkout.</td></tr>
+</table>
+</section>
+
+<div class="box">
+<h3>Habits that prevent most mistakes</h3>
+<ol>
+<li>Run <code>svn status</code> before any command in Tier 3 or 4.</li>
+<li>Preview merges with <code>--dry-run</code>.</li>
+<li>Run <code>svn diff</code> before <code>commit</code> and read what you're about to publish.</li>
+<li>Before <code>svn revert -R .</code>, read the <code>svn status</code> list, because it's the only warning you get.</li>
+<li>If something looks wrong, stop and ask. Nothing in Tier 1 or 2 can hurt.</li>
+</ol>
+</div>
+
+<p class="foot">Repository: <code>https://ld7-svn.corp.zynga.com/games/CSR2</code>. Your account can read <code>/games/CSR2</code> and below, but not the root <code>/games</code>, which is why SmartSVN's Log and Graph fail.</p>
+
+</body>
+</html>
