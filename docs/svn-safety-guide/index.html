@@ -3,505 +3,316 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SVN Terminal Commands - Safety Guide</title>
+<title>SVN Step-by-Step Guide</title>
 <style>
-  :root { --fg:#1f2328; --muted:#59636e; --bg:#ffffff; --line:#d1d9e0; --code:#f6f8fa; --accent:#0969da; }
+  :root {
+    --fg:#1f2328; --muted:#59636e; --bg:#ffffff; --line:#d1d9e0; --code:#f6f8fa; --accent:#0969da;
+    --main:#0969da; --main-t:#e8f1fb; --branch:#1b7c83; --branch-t:#e1f5f6;
+    --side:#8250df; --side-t:#f3ecff; --ref:#59636e; --ref-t:#eef1f4;
+    --g-fg:#1a7f37; --g-bg:#e6f6ea; --b-fg:#0969da; --b-bg:#e8f1fb;
+    --a-fg:#8a5a00; --a-bg:#fff4e0; --r-fg:#cf222e; --r-bg:#fdebec; --o-fg:#a8470a; --o-bg:#fff1e5;
+  }
+  .g-main { --gc:var(--main); --gt:var(--main-t); }
+  .g-branch { --gc:var(--branch); --gt:var(--branch-t); }
+  .g-side { --gc:var(--side); --gt:var(--side-t); }
+  .g-ref { --gc:var(--ref); --gt:var(--ref-t); }
+
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   [hidden] { display: none !important; }
-  body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--fg); background: var(--bg); max-width: 980px; margin: 0 auto; padding: 32px 24px 64px; line-height: 1.5; }
-  h1 { font-size: 28px; margin: 0 0 4px; }
-  h3 { font-size: 16px; margin: 20px 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 16px; }
+  body { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--fg); background: var(--bg);
+         max-width: 800px; margin: 0 auto; padding: 30px 22px 90px; line-height: 1.55; font-size: 16px; }
+  h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; }
+  .sub { color: var(--muted); max-width: 66ch; margin: 0 0 18px; }
+  a { color: var(--accent); }
+  p { margin: 8px 0; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.86em; background: var(--code);
+         padding: 1px 5px; border-radius: 4px; word-break: break-word; }
 
-  /* sticky search + section links */
-  .nav { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 0 10px; margin: 0 0 8px; }
-  .search { width: 100%; padding: 8px 12px; font: inherit; font-size: 14px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
-  .search:focus-visible, .links a:focus-visible, .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .links { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; padding-bottom: 2px; }
-  .links a { flex: none; font-size: 13px; color: var(--fg); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; }
+  /* sticky search and group links */
+  .bar { position: sticky; top: 0; z-index: 20; background: var(--bg); padding: 10px 0 9px; margin: 0 0 4px; border-bottom: 1px solid var(--line); }
+  .search { width: 100%; padding: 9px 12px; font: inherit; font-size: 15px; color: var(--fg); background: var(--bg);
+            border: 1px solid var(--line); border-radius: 8px; }
+  .search:focus-visible, .links a:focus-visible, .copy:focus-visible, summary:focus-visible, a:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; }
+  .links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .links a { flex: none; font-size: 13.5px; color: var(--fg); text-decoration: none; border: 1px solid var(--line);
+             border-radius: 999px; padding: 2px 11px; }
+  .links a.grp { font-weight: 600; background: var(--code); }
   .links a:hover { background: var(--code); }
-  #nores { margin: 20px 0; }
+  #nores { color: var(--muted); margin: 22px 0; }
 
-  section { scroll-margin-top: 130px; }
-  h2 { font-size: 20px; margin: 36px 0 6px; padding: 10px 14px; border-radius: 6px; border-left: 6px solid; }
-  .t1 h2 { background:#e6f6ea; border-color:#1a7f37; }
-  .t2 h2 { background:#e8f1fb; border-color:#0969da; }
-  .t3 h2 { background:#fff4e0; border-color:#bf8700; }
-  .t4 h2 { background:#fdebec; border-color:#cf222e; }
-  .t5 h2 { background:#f3ecff; border-color:#8250df; }
-  .t6 h2 { background:#e1f5f6; border-color:#1b7c83; }
-  .ask h2 { background:#fff1e5; border-color:#d4570b; }
-  .ex h2 { background:var(--code); border-color:var(--muted); }
-  .desc { color: var(--muted); margin: 6px 0 10px; }
+  /* top blocks */
+  .box { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin: 16px 0; scroll-margin-top: calc(var(--bar-h, 110px) + 12px); }
+  .box h2 { font-size: 18px; margin: 0 0 4px; }
+  .desc { color: var(--muted); margin: 4px 0 8px; font-size: 15px; }
+  .qc { list-style: none; margin: 8px 0 0; padding: 0; }
+  .qc li { display: grid; grid-template-columns: minmax(0, 18rem) 1fr auto; gap: 6px 14px; align-items: center;
+           padding: 9px 0; border-top: 1px solid var(--line); font-size: 15px; }
+  .qc .qd { color: var(--muted); }
+  .cw { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+  .cw .copy { margin-left: 0; }
+  .stop { border-left: 5px solid var(--o-fg); }
+  .stop ol { margin: 8px 0 0; padding-left: 22px; }
+  .stop li { margin: 6px 0; }
+  .legend-line { font-size: 14.5px; margin: 10px 0 0; line-height: 2; }
+  .toc { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px 26px; margin: 28px 0 0; }
+  .toc-g h2 { font-size: 16px; margin: 0 0 8px; padding-left: 10px; border-left: 4px solid var(--gc); }
+  .toc-g ol, .toc-g ul { list-style: none; margin: 0; padding: 0; }
+  .toc-g li { margin: 6px 0; font-size: 15px; }
+  .tn { display: inline-block; width: 21px; height: 21px; line-height: 21px; text-align: center; border-radius: 50%;
+        background: var(--gt); color: var(--gc); font-size: 12px; font-weight: 700; margin-right: 8px; }
 
-  .tw { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  /* groups and topics */
+  h2.group { font-size: 27px; line-height: 1.2; margin: 60px 0 4px; padding: 2px 0 2px 14px; border-left: 6px solid var(--gc); scroll-margin-top: calc(var(--bar-h, 110px) + 12px); }
+  .gdesc { max-width: 66ch; color: var(--muted); margin: 6px 0 14px; }
+  .topic { padding: 26px 0 6px; border-top: 1px solid var(--line); scroll-margin-top: calc(var(--bar-h, 110px) + 12px); }
+  .t-head { display: flex; align-items: center; gap: 12px; }
+  .topic.nonum .t-head { border-left: 5px solid var(--gc); padding-left: 12px; }
+  .tnum { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--gt); color: var(--gc);
+          font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; }
+  .topic h3 { font-size: 23px; line-height: 1.25; margin: 0; }
+  .use { max-width: 66ch; margin: 10px 0 4px; }
+  .lead { max-width: 66ch; }
+  .flow { display: flex; flex-wrap: wrap; gap: 4px 22px; font-size: 14px; color: var(--muted); margin: 6px 0 4px; }
+  .fl { font-weight: 700; color: var(--fg); margin-right: 4px; }
+  .sublabel { font-size: 16px; margin: 22px 0 2px; }
+
+  /* steps */
+  ol.steps2 { list-style: none; counter-reset: s; padding: 0; margin: 10px 0 14px; }
+  li.step { counter-increment: s; position: relative; padding: 13px 4px 13px 46px; border-bottom: 1px solid var(--line); }
+  li.step:last-child { border-bottom: 0; }
+  li.step::before { content: counter(s); position: absolute; left: 4px; top: 13px; width: 28px; height: 28px; border-radius: 50%;
+                    background: var(--gt); color: var(--gc); font-weight: 700; font-size: 14px;
+                    display: flex; align-items: center; justify-content: center; }
+  .st-main { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .badges { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .act { font-weight: 700; }
+  .why { margin: 6px 0 0; color: var(--muted); font-size: 15px; max-width: 64ch; }
+  .why code, .callout code, td code { color: var(--fg); }
+  code.cmd { font-size: 14px; background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 3px 9px; color: var(--fg); }
+  .copy { margin-left: 4px; font: inherit; font-size: 12px; line-height: 1.5; padding: 1px 9px; border: 1px solid var(--line);
+          border-radius: 6px; background: var(--bg); color: var(--muted); cursor: pointer; }
+  .copy:hover { color: var(--fg); border-color: var(--muted); }
+  .copy.done { color: var(--g-fg); border-color: var(--g-fg); }
+  .st-main .copy { margin-left: -4px; }
+
+  /* badges */
+  .b { display: inline-block; font-size: 12.5px; font-weight: 600; line-height: 1.5; padding: 1px 10px; border-radius: 999px; white-space: nowrap; }
+  .b.req { background: var(--fg); color: var(--bg); }
+  .b.rec { border: 1.5px solid var(--fg); color: var(--fg); padding: 0 9px; }
+  .b.opt { border: 1px dashed var(--muted); color: var(--muted); padding: 0 9px; }
+  .b.r-read { background: var(--g-bg); color: var(--g-fg); }
+  .b.r-local { background: var(--b-bg); color: var(--b-fg); }
+  .b.r-risky { background: var(--a-bg); color: var(--a-fg); }
+  .b.r-shared { background: var(--r-bg); color: var(--r-fg); }
+  .b.r-ask { background: var(--o-bg); color: var(--o-fg); }
+
+  /* callouts, tables, details */
+  .callout { margin: 14px 0; padding: 11px 15px; border-left: 4px solid; border-radius: 4px 8px 8px 4px; font-size: 15px; }
+  .callout .lab { display: block; margin-bottom: 4px; }
+  .callout p { margin: 6px 0; }
+  .callout ul { margin: 6px 0 2px; padding-left: 20px; }
+  .callout li { margin: 5px 0; }
+  .callout.see { background: var(--b-bg); border-color: var(--b-fg); }
+  .callout.ask { background: var(--o-bg); border-color: var(--o-fg); }
+  .callout.errs { background: var(--ref-t); border-color: var(--muted); }
+  .callout.tip { background: var(--g-bg); border-color: var(--g-fg); }
+  .tw { overflow-x: auto; margin: 10px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
   th, td { text-align: left; vertical-align: top; padding: 8px 10px; border: 1px solid var(--line); }
-  th { background: #f6f8fa; }
-  td:first-child { width: 32%; }
-  code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; background: var(--code); padding: 1px 5px; border-radius: 4px; word-break: break-word; }
-  td ol { margin: 0; padding-left: 18px; }
-  td ol li { margin: 4px 0; }
-  td p { margin: 6px 0 0; }
-  ol.steps { padding-left: 22px; }
-  ol.steps li { margin: 10px 0; }
-  ul.plain { padding-left: 20px; }
-  ul.plain li { margin: 8px 0; }
+  th { background: rgba(127,127,127,.12); }
+  .note { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+  td .note { margin-top: 6px; }
+  pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13.5px; background: var(--code);
+        border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; overflow-x: auto; margin: 12px 0 4px; }
+  details.more { margin: 14px 0; border: 1px solid var(--line); border-radius: 8px; padding: 0 14px; }
+  details.more summary { cursor: pointer; padding: 10px 0; font-weight: 600; }
+  details.more[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+  details.more[open] { padding-bottom: 6px; }
+  .backrow { margin: 18px 0 6px; }
+  a.back::before { content: "\2190\00a0"; }
 
-  .copy { margin-left: 6px; font: inherit; font-size: 11px; line-height: 1.4; padding: 1px 7px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--muted); cursor: pointer; vertical-align: middle; }
-  .copy:hover { color: var(--fg); }
-  .copy.done { color: #1a7f37; border-color: #1a7f37; }
+  /* search states */
+  li.step.hit { background: rgba(9,105,218,.08); }
+  tr.hit td { background: rgba(9,105,218,.08); }
+  li.step.dim { opacity: .4; }
 
-  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; margin-right: 4px; }
-  .tag1 { background:#e6f6ea; color:#1a7f37; }
-  .tag2 { background:#e8f1fb; color:#0969da; }
-  .tag3 { background:#fff4e0; color:#9a6700; }
-  .tag4 { background:#fdebec; color:#cf222e; }
+  .foot { color: var(--muted); font-size: 14px; margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 70ch; }
 
-  .box { border: 1px solid var(--line); background: #f6f8fa; border-radius: 6px; padding: 12px 18px; margin-top: 32px; }
-  .box h3 { margin: 0 0 6px; font-size: 16px; }
-  .box ol { margin: 6px 0 0; padding-left: 20px; }
-  tr { page-break-inside: avoid; }
-  h2 { page-break-after: avoid; }
-  .foot { color: var(--muted); font-size: 13px; margin-top: 40px; }
+  @media (max-width: 640px) {
+    body { padding: 22px 16px 80px; }
+    h1 { font-size: 27px; }
+    .qc li { grid-template-columns: 1fr; gap: 3px; }
+    .badges { margin-left: 0; }
+    h2.group { font-size: 23px; }
+    .links { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; gap: 5px;
+             -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
+             mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); }
+    .links.at-end { -webkit-mask-image: none; mask-image: none; }
+    .links a { padding: 3px 10px; font-size: 13px; }
+  }
 
   @media (prefers-color-scheme: dark) {
-    :root { --fg:#e6edf3; --muted:#9198a1; --bg:#0d1117; --line:#3d444d; --code:#161b22; --accent:#58a6ff; }
-    th { background:#161b22; }
-    .box { background:#161b22; }
-    .t1 h2 { background:#12261a; } .t2 h2 { background:#0c2036; }
-    .t3 h2 { background:#2b2108; } .t4 h2 { background:#2d1215; }
-    .t5 h2 { background:#231a38; } .t6 h2 { background:#0c2a2d; }
-    .ask h2 { background:#2b1708; }
-    .tag1 { background:#12261a; color:#56d364; } .tag2 { background:#0c2036; color:#58a6ff; }
-    .tag3 { background:#2b2108; color:#e3b341; } .tag4 { background:#2d1215; color:#ff7b72; }
-    .copy.done { color:#56d364; border-color:#56d364; }
+    :root {
+      --fg:#e6edf3; --muted:#9aa4af; --bg:#0d1117; --line:#3d444d; --code:#161b22; --accent:#58a6ff;
+      --main:#58a6ff; --main-t:#0c2036; --branch:#4cc3cc; --branch-t:#0c2a2d;
+      --side:#b392f0; --side-t:#231a38; --ref:#9aa4af; --ref-t:#161b22;
+      --g-fg:#56d364; --g-bg:#12261a; --b-fg:#58a6ff; --b-bg:#0c2036;
+      --a-fg:#e3b341; --a-bg:#2b2108; --r-fg:#ff7b72; --r-bg:#2d1215; --o-fg:#ffa657; --o-bg:#2b1708;
+    }
+    li.step.hit, tr.hit td { background: rgba(88,166,255,.14); }
   }
+
   @media print {
     :root { --fg:#1f2328; --muted:#59636e; --bg:#fff; --line:#d1d9e0; --code:#f6f8fa; }
     body { max-width: none; padding: 0; font-size: 12px; }
-    .nav, #nores, .copy { display: none !important; }
-    .t1 h2 { background:#e6f6ea; } .t2 h2 { background:#e8f1fb; }
-    .t3 h2 { background:#fff4e0; } .t4 h2 { background:#fdebec; }
-    .t5 h2 { background:#f3ecff; } .t6 h2 { background:#e1f5f6; }
-    .ask h2 { background:#fff1e5; }
-    .tag1 { background:#e6f6ea; color:#1a7f37; } .tag2 { background:#e8f1fb; color:#0969da; }
-    .tag3 { background:#fff4e0; color:#9a6700; } .tag4 { background:#fdebec; color:#cf222e; }
-    th { background:#f6f8fa; } .box { background:#f6f8fa; }
+    .bar, #nores, .copy { display: none !important; }
+    .topic { break-inside: auto; }
+    li.step, tr, .callout { break-inside: avoid; }
+    h2.group, h3 { break-after: avoid; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
-<body>
+<body id="top">
 
-<h1>SVN Terminal Commands - Safety Guide</h1>
-<p class="sub">Commands sorted by how much damage they can do, written for artists, UX and UI people who work in SVN day to day. When this guide says to ask a developer, that is the safe choice, not a failure.</p>
+<header>
+<h1>SVN step-by-step guide</h1>
+<p class="sub">Pick the task you are doing and follow the steps in order. Each step says whether it is required and how risky it is. When the guide says to ask a developer, that is the safe choice, not a failure.</p>
+</header>
 
-<div class="nav">
-  <input id="q" class="search" type="search" placeholder="Search commands, for example revert, branch or lock (press / to search)" aria-label="Search commands" autocomplete="off">
-  <nav class="links" aria-label="Sections">
-    <a href="#quick">Quick reference</a>
-    <a href="#ask">Ask a developer</a>
-    <a href="#workflow">Daily workflow</a>
-    <a href="#tier1">Tier 1</a>
-    <a href="#tier2">Tier 2</a>
-    <a href="#tier3">Tier 3</a>
-    <a href="#tier4">Tier 4</a>
-    <a href="#switching">Switch branch</a>
-    <a href="#branching">R&amp;D branch</a>
-    <a href="#recovery">Fixing mistakes</a>
-    <a href="#conflicts">Conflicts</a>
-    <a href="#errors">Common errors</a>
-    <a href="#unity">Unity basics</a>
-    <a href="#variations">Handy variations</a>
+<div class="bar">
+  <input id="q" class="search" type="search" placeholder="Search commands, tasks or errors" title="Press / to jump to the search box" aria-label="Search the guide" autocomplete="off">
+  <nav class="links" aria-label="Parts of the guide">
+    <a class="grp" href="#g-main">Daily path</a>
+    <a class="grp" href="#g-branch">Branches</a>
+    <a class="grp" href="#g-side">Side paths</a>
+    <a class="grp" href="#g-ref">Reference</a>
+    <a href="#quick">Commands</a>
+    <a href="#update">Get the latest</a>
+    <a href="#commit">Commit</a>
+    <a href="#switch">Switch branch</a>
+    <a href="#conflicts">Fix conflicts</a>
+    <a href="#cleanup">Clean up</a>
+    <a href="#undo">Undo</a>
+    <a href="#errors">Errors</a>
     <a href="#glossary">Glossary</a>
   </nav>
 </div>
-<p id="nores" class="desc" hidden>Nothing matches your search. Try a shorter word.</p>
+<p id="nores" hidden>Nothing matches your search. Try a shorter word.</p>
 
-<section id="quick" class="ex prose">
-<h2>Quick reference</h2>
-<p class="desc">The commands you will use most. Each one is explained in its tier below.</p>
-<div class="tw">
-<table>
-<tr><th>Command</th><th>Use it to</th><th>Tier</th></tr>
-<tr><td><code class="cmd">svn status</code></td><td>See which files you changed</td><td><span class="tag tag1">Tier 1</span></td></tr>
-<tr><td><code class="cmd">svn diff</code></td><td>Read your changes line by line before committing</td><td><span class="tag tag1">Tier 1</span></td></tr>
-<tr><td><code class="cmd">svn log -l 10</code></td><td>See the last 10 commits</td><td><span class="tag tag1">Tier 1</span></td></tr>
-<tr><td><code class="cmd">svn info</code></td><td>Check which branch and revision you are on</td><td><span class="tag tag1">Tier 1</span></td></tr>
-<tr><td><code class="cmd">svn update</code></td><td>Get other people's changes</td><td><span class="tag tag2">Tier 2</span></td></tr>
-<tr><td><code class="cmd">svn add file</code></td><td>Start tracking a new file</td><td><span class="tag tag2">Tier 2</span></td></tr>
-<tr><td><code class="cmd">svn switch "&lt;branch-address&gt;"</code></td><td>Move your project folder to another branch</td><td><span class="tag tag3">Tier 3</span></td></tr>
-<tr><td><code class="cmd">svn commit -m "message"</code></td><td>Publish your changes to the team</td><td><span class="tag tag4">Tier 4</span></td></tr>
-</table>
-</div>
+<main>
+<div class="top-blocks">
+<section class="box" id="quick">
+<h2>Quick commands</h2>
+<p class="desc">The few commands you will type most. Each one links to the topic that explains it.</p>
+<ul class="qc"><li><span class="cw"><code class="cmd">svn status</code></span><span class="qd">See what you changed</span><a href="#know">Know where you are</a></li><li><span class="cw"><code class="cmd">svn diff</code></span><span class="qd">Read your changes before committing</span><a href="#review">Review your changes</a></li><li><span class="cw"><code class="cmd">svn info</code></span><span class="qd">Check which branch you are on</span><a href="#know">Know where you are</a></li><li><span class="cw"><code class="cmd">svn update</code></span><span class="qd">Get other people's changes</span><a href="#update">Get the latest</a></li><li><span class="cw"><code class="cmd">svn add file</code></span><span class="qd">Start tracking a new file</span><a href="#work">Do your work</a></li><li><span class="cw"><code class="cmd">svn commit -m "message"</code></span><span class="qd">Share your work with the team</span><a href="#commit">Commit your changes</a></li><li><span class="cw"><code class="cmd">svn switch "&lt;address&gt;"</code></span><span class="qd">Move your folder to another branch</span><a href="#switch">Switch branch</a></li></ul>
 </section>
 
-<section id="ask" class="ask searchable">
-<h2>Ask a developer first</h2>
-<p class="desc">These can affect other people's work or the whole project, and some can't be undone by you. If you aren't sure, stop and ask. Nothing in this guide is urgent enough to risk shared work.</p>
-<div class="tw">
-<table>
-<tr><th>Command or situation</th><th>Why to ask first</th></tr>
-<tr><td><code>svn merge</code> (any form)</td><td>It changes many files at once and can create conflicts that take hours to untangle. This includes bringing changes from the main line into your R&amp;D branch, and bringing your R&amp;D work back.</td></tr>
-<tr><td><code>svn switch</code> with <code>--ignore-ancestry</code>, or a switch that reports conflicts</td><td>The option turns off the safety check against switching to an unrelated location, and conflicts need a developer. Normal switching between branches is covered in <a href="#switching">Switching branches</a>.</td></tr>
-<tr><td><code>svn update -r N</code></td><td>It moves your folder to an old revision. Editing or committing from there causes confusion.</td></tr>
-<tr><td><code>svn update --accept theirs-full</code></td><td>It silently throws away your edits in every conflicted file.</td></tr>
-<tr><td><code>svn upgrade</code></td><td>One-way change. Older SVN tools may no longer open the folder afterwards.</td></tr>
-<tr><td><code>svn cleanup --remove-ignored</code></td><td>It also deletes ignored files such as <code>Library</code> and <code>Temp</code>, which forces a very long Unity rebuild. The normal <code>--remove-unversioned</code> form is covered in Tier 3.</td></tr>
-<tr><td><code>svn delete</code>, <code>move</code>, <code>mkdir</code> or <code>copy</code> on a server address</td><td>These act on the shared server immediately and everyone sees them. The only exception is creating your own R&amp;D branch, as described in <a href="#branching">R&amp;D branch</a>.</td></tr>
-<tr><td><code>svn propset</code>, ignore rules, <code>svn:externals</code></td><td>Project-wide settings. A wrong value affects everyone's checkout.</td></tr>
-<tr><td><code>svn unlock --force</code></td><td>Breaks a lock held by someone else, who could lose work.</td></tr>
-<tr><td>Reversing a commit, yours or someone else's</td><td>The reversal becomes a new commit that everyone receives. A developer checks nobody depends on it first.</td></tr>
-<tr><td>You committed to the wrong branch</td><td>Fixing it needs reverse commits and merges. Stop and tell a developer. See <a href="#recovery">Fixing mistakes</a>.</td></tr>
-<tr><td>A conflict in a scene, prefab, texture, model or any binary file, or a tree conflict</td><td>These can't be merged safely by hand, and it's easy to lose someone's work. See <a href="#conflicts">Fixing conflicts</a>.</td></tr>
-<tr><td>Changing Unity project settings, packages or the <code>ProjectSettings</code> folder</td><td>These settings apply to everyone who opens the project.</td></tr>
-<tr><td><code>svn status</code> shows far more changes than you made</td><td>Don't commit. It is often generated folders such as <code>Library</code> or <code>Temp</code>, or a wrong folder. A developer can check and set up ignore rules.</td></tr>
-<tr><td>"Authorization failed" or "forbidden"</td><td>Your account may be missing access to that location. Don't look for another login.</td></tr>
-<tr><td>Anything not in this guide</td><td>Look it up with <code>svn help &lt;command&gt;</code> if you like, but ask before running it.</td></tr>
-</table>
-</div>
-</section>
-
-<section id="workflow" class="ex prose">
-<h2>Daily workflow</h2>
-<p class="desc">A safe order for a normal working session.</p>
-<ol class="steps">
-<li>Run <code class="cmd">svn status</code> to see the state of your folder before you start.</li>
-<li>Run <code class="cmd">svn update</code> to get the latest changes. If any file shows <code>C</code>, stop and read <a href="#conflicts">Fixing conflicts</a>.</li>
-<li>Do your work. Rename or move tracked files with <code>svn move</code>, not in Finder.</li>
-<li>Run <code class="cmd">svn status</code> again. A <code>?</code> is a new file you may need to <code>svn add</code>. A <code>!</code> is a file that has gone missing.</li>
-<li>Run <code class="cmd">svn diff</code> and read what you are about to publish.</li>
-<li>Run <code class="cmd">svn commit -m "Short, clear message"</code>.</li>
-<li>If the commit fails with "out of date", someone committed first. Run <code>svn update</code>, deal with any conflicts, then commit again.</li>
-</ol>
-</section>
-
-<section id="tier1" class="t1 searchable">
-<h2>Tier 1: Read-only (always safe)</h2>
-<p class="desc">These don't change your files or the repository.</p>
-<div class="tw">
-<table>
-<tr><th>Command</th><th>What it does</th></tr>
-<tr><td><code class="cmd">svn status</code></td><td>Compares your files to the last update and lists what you changed. First-column letters: <code>M</code> modified, <code>A</code> added, <code>D</code> deleted, <code>?</code> not under version control, <code>!</code> missing, <code>C</code> conflict. Reads local data only. Other letters you may see: <code>X</code> an external (a file or folder the project pulls in from another location; normal, see the glossary) and <code>I</code> ignored, shown only with <code>--no-ignore</code>. A file external shows <code>X</code> in the fifth column.</td></tr>
-<tr><td><code class="cmd">svn status -u</code></td><td>Same list, plus a column marking files changed on the server since your last update. Contacts the server, so it needs your login.</td></tr>
-<tr><td><code class="cmd">svn info</code></td><td>Shows which repository URL, branch and revision your folder is on, and who last changed it. Answers "which branch am I on?"</td></tr>
-<tr><td><code class="cmd">svn log</code></td><td>Shows commit history: revision, author, date and message. <code>-l N</code> limits to N entries, <code>-v</code> lists changed files, <code>-r A:B</code> selects a revision range, <code>--stop-on-copy</code> stops where the branch was created, <code>-q</code> gives a short list.</td></tr>
-<tr><td><code class="cmd">svn diff</code></td><td>Prints your uncommitted changes line by line. Add a file name to see one file. <code>-r A:B</code> compares two revisions, <code>-c N</code> shows what revision N changed.</td></tr>
-<tr><td><code class="cmd">svn blame file</code></td><td>Shows each line of a text file with the revision and author who last changed it. Useful for finding who to ask about a change.</td></tr>
-<tr><td><code class="cmd">svn cat -r N file</code></td><td>Prints a file as it was at revision N, without touching your copy.</td></tr>
-<tr><td><code class="cmd">svn ls &lt;url or path&gt;</code></td><td>Lists files and folders at a location, even on the server, without checking anything out. <code>-v</code> adds revision and author.</td></tr>
-<tr><td><code class="cmd">svn list -R</code></td><td>Same as <code>ls</code>, recursive. Can be very long on a big project, so pipe it into <code>head</code> or <code>less</code>.</td></tr>
-<tr><td><code class="cmd">svn proplist -v</code> / <code>propget</code></td><td>Shows properties attached to files or folders, such as <code>svn:ignore</code>, <code>svn:externals</code> and <code>svn:needs-lock</code>. Viewing is safe. Changing them is for developers.</td></tr>
-<tr><td><code class="cmd">svn propget svn:externals -R .</code></td><td>Lists which folders define externals, the files and folders the project pulls in from other locations. Read-only. Changing externals is a developer job.</td></tr>
-<tr><td><code class="cmd">svn help &lt;command&gt;</code></td><td>Prints full options for any command.</td></tr>
-</table>
-</div>
-</section>
-
-<section id="tier2" class="t2 searchable">
-<h2>Tier 2: Local changes, easy to undo</h2>
-<p class="desc">Nothing reaches the server. You can reverse these before committing.</p>
-<div class="tw">
-<table>
-<tr><th>Command</th><th>What it does</th></tr>
-<tr><td><code class="cmd">svn add file</code></td><td>Starts tracking a new file. Nothing goes to the server until you commit. Undo with <code>svn revert file</code>.</td></tr>
-<tr><td><code class="cmd">svn delete file</code></td><td>Marks a tracked file for deletion and removes it locally. The server learns about it at commit. Undo with <code>svn revert file</code> before committing.</td></tr>
-<tr><td><code class="cmd">svn move old new</code></td><td>Renames or moves a file and keeps its history. Prefer it over moving the file in Finder, which makes SVN see one file deleted and another added.</td></tr>
-<tr><td><code class="cmd">svn update</code></td><td>Downloads other people's changes and merges them into your files. If you edited the same lines as someone else you get a conflict (<code>C</code>). Run <code>svn status</code> first.</td></tr>
-<tr><td><code class="cmd">svn export &lt;url&gt; folder</code></td><td>Downloads a clean copy of a branch or folder with no <code>.svn</code> metadata. Writes to a new folder only, so it's harmless.</td></tr>
-<tr><td><code class="cmd">svn cleanup</code></td><td>Repairs your folder after a crash or interrupted update and removes stale locks. Fixes "working copy locked" errors. Plain <code>svn cleanup</code> only repairs. The <code>--remove-unversioned</code> form deletes files, see Tier 3.</td></tr>
-<tr><td><code class="cmd">svn resolve --accept working file</code></td><td>Tells SVN you've fixed a conflict so it stops flagging it. It doesn't choose the right content for you. Use it only on simple text files you've checked. For scenes, prefabs and binary files, ask a developer first.</td></tr>
-</table>
-</div>
-</section>
-
-<section id="tier3" class="t3 searchable">
-<h2>Tier 3: Risky, can lose local work or cause conflicts</h2>
-<p class="desc">Check <code>svn status</code> before running any of these.</p>
-<div class="tw">
-<table>
-<tr><th>Command</th><th>What it does and why it's risky</th></tr>
-<tr><td><code class="cmd">svn revert file</code></td><td>Throws away your uncommitted edits and restores the last committed version. <strong>Permanent.</strong> Nothing is saved anywhere, so you can't get your edits back.</td></tr>
-<tr><td><code class="cmd">svn revert -R .</code></td><td>The same for every changed file in the current folder and below. Read the <code>svn status</code> list first.</td></tr>
-<tr><td><code class="cmd">svn switch "&lt;branch-address&gt;"</code></td><td>Points your whole project folder at another branch and downloads the differences. Nothing changes on the server, but local edits can conflict. Follow <a href="#switching">Switching branches</a>: run it from the top folder with Unity closed.</td></tr>
-<tr><td><code class="cmd">svn cleanup --remove-unversioned</code></td><td>Deletes every file SVN doesn't track (the <code>?</code> list) from your computer. <strong>Permanent</strong>, with no Trash. Only your computer is affected, not the server. Preview with <code>svn status | grep '^?'</code>. Check the list for new assets or <code>.meta</code> files you haven't added yet, and for <code>Library</code>, <code>Temp</code> or <code>Logs</code>: if those are listed, SVN isn't ignoring them, so ask a developer first. Needs SVN 1.9 or newer.</td></tr>
-<tr><td><code class="cmd">svn cleanup --remove-unversioned &lt;folder&gt;</code></td><td>The same for one folder only. Preview with <code>svn status &lt;folder&gt; | grep '^?'</code>.</td></tr>
-</table>
-</div>
-</section>
-
-<section id="tier4" class="t4 searchable">
-<h2>Tier 4: Changes the shared server</h2>
-<p class="desc">Visible to everyone on the team.</p>
-<div class="tw">
-<table>
-<tr><th>Command</th><th>What it does and why it's risky</th></tr>
-<tr><td><code class="cmd">svn commit -m "message"</code></td><td>Sends your changes to the server as a new revision everyone sees. It can't be erased, only undone with a new reverse commit. Run <code>svn status</code> and <code>svn diff</code> first, check the branch with <code>svn info</code>, and write a clear message.</td></tr>
-<tr><td><code class="cmd">svn lock file</code></td><td>Prevents others from committing that file until you unlock it. Common for Unity scenes, prefabs and binary assets. A normal commit releases the lock for you.</td></tr>
-<tr><td><code class="cmd">svn unlock file</code></td><td>Releases a lock you hold. Never use <code>--force</code> on someone else's lock.</td></tr>
-<tr><td><code class="cmd">svn copy &lt;url&gt; &lt;url&gt; -m "msg"</code></td><td>Creates a branch on the server. For you, this is only for making your own R&amp;D branch in the location a developer gave you. Follow <a href="#branching">R&amp;D branch</a>. A typo leaves a stray folder on the shared server.</td></tr>
-</table>
-</div>
-</section>
-
-<div class="box prose">
-<h3>Habits that prevent most mistakes</h3>
+<section class="box stop" id="stop">
+<h2>Stop and ask a developer if</h2>
 <ol>
-<li>Run <code>svn status</code> before any command in Tier 3 or 4.</li>
-<li>Run <code>svn diff</code> before <code>commit</code> and read what you're about to publish.</li>
-<li>Run <code>svn info</code> before committing if you use more than one folder or branch, and check the URL line.</li>
-<li>Before <code>svn revert -R .</code>, read the <code>svn status</code> list, because it's the only warning you get.</li>
-<li>Before anything risky, save your edits with <code>svn diff &gt; my-changes.patch</code>.</li>
-<li>Before <code>svn switch</code>, close Unity and check that <code>svn status</code> shows nothing you'd miss.</li>
-<li>If something looks wrong, or it isn't in this guide, stop and ask. Nothing in Tier 1 or 2 can hurt.</li>
+<li>A <code>C</code> appears next to a scene, prefab, texture, model or any binary or data file. See <a href="#conflicts">Fix conflicts</a>.</li>
+<li>You are about to run <code>svn merge</code>, or any command on a server address other than creating your own R&amp;D branch. See <a href="#devonly">Developer-only commands</a>.</li>
+<li><code>svn status</code> shows far more changes than you made. Don't commit.</li>
+<li>You committed something wrong, or to the wrong branch. See <a href="#undo">Undo and recover</a>.</li>
+<li>A command or an error isn't in this guide. Ask before you run anything else.</li>
 </ol>
+</section>
+
+<section class="box" id="legend">
+<h2>How to read the steps</h2>
+<p class="legend-line"><span class="b req">Required</span> skipping it breaks something. <span class="b rec">Recommended</span> skipping works, but you risk a mistake. <span class="b opt">Optional</span> only when the reason under the step applies to you.</p>
+<p class="legend-line"><span class="b r-read">Read-only</span> changes nothing. <span class="b r-local">Local</span> changes only files on your computer. <span class="b r-risky">Risky</span> can lose work or cause conflicts. <span class="b r-shared">Shared</span> everyone on the team sees it. <span class="b r-ask">Ask dev</span> a developer should do this.</p>
+</section>
+
+<nav class="toc" aria-label="Contents">
+<div class="toc-g g-main"><h2>Daily path</h2><ol>
+<li><span class="tn">1</span><a href="#know">Know where you are</a></li><li><span class="tn">2</span><a href="#update">Get the latest</a></li><li><span class="tn">3</span><a href="#work">Do your work</a></li><li><span class="tn">4</span><a href="#review">Review your changes</a></li><li><span class="tn">5</span><a href="#commit">Commit your changes</a></li></ol></div>
+<div class="toc-g g-branch"><h2>Branches</h2><ol>
+<li><span class="tn">6</span><a href="#prepare">Prepare to switch</a></li><li><span class="tn">7</span><a href="#switch">Switch branch</a></li><li><span class="tn">8</span><a href="#switchback">Switch back or recover</a></li><li><span class="tn">9</span><a href="#rnd">R&amp;D branch</a></li></ol></div>
+<div class="toc-g g-side"><h2>Side paths</h2><ul>
+<li><a href="#conflicts">Fix conflicts</a></li><li><a href="#cleanup">Clean up</a></li><li><a href="#undo">Undo and recover</a></li><li><a href="#explore">Explore history and the server</a></li></ul></div>
+<div class="toc-g g-ref"><h2>Reference</h2><ul>
+<li><a href="#devonly">Developer-only commands</a></li><li><a href="#errors">Error lookup</a></li><li><a href="#glossary">Glossary</a></li></ul></div>
+</nav>
 </div>
 
-<section id="switching" class="t6 prose">
-<h2>Switching branches</h2>
-<p class="desc">Switching points your existing project folder at a different branch and downloads only the differences. Nothing changes on the server, but it changes many files on your computer at once, so follow the steps in order. It is safe when your folder is clean and the address is right.</p>
+<h2 class="group g-main" id="g-main" data-group="main">Daily path</h2>
+<p class="gdesc">Work through these in order, from checking where you are to sharing your work. Each topic says what comes before and after it.</p>
 
-<h3>Before you switch</h3>
-<ul class="plain">
-<li>Know the exact branch you need. If you aren't sure of the name, ask a developer or check your team's notes.</li>
-<li>Close Unity.</li>
-<li>Open the terminal in the project's top folder, the one you first checked out. Switching a subfolder gives you a mixed copy.</li>
-<li>Make sure <code>svn status</code> shows no edits you would miss. Commit them, or save them with <code>svn diff &gt; my-changes.patch</code>.</li>
-</ul>
+<section class="topic g-main" id="know" data-group="main"><div class="t-head"><span class="tnum">1</span><h3>Know where you are</h3></div><p class="use"><strong>Use this when:</strong> you start work, or before you run anything risky.</p><nav class="flow" aria-label="Where this topic fits"><span><span class="fl">Before</span> This is where you start.</span><span><span class="fl">Next</span> <a href="#update">Get the latest</a></span></nav><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn info</code><span class="badges"><span class="b rec">Recommended</span><span class="b r-read">Read-only</span></span></div><p class="why">Shows the branch address, revision and last change of your folder. It answers "which branch am I on?" To print only the address, add <code>--show-item url</code> (SVN 1.9 or newer).</p></li><li class="step item"><div class="st-main"><code class="cmd">svn status</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Lists what you changed since your last update. It only reads your computer, so it is always safe.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn status -u</code><span class="badges"><span class="b opt">Optional</span><span class="b r-read">Read-only</span></span></div><p class="why">Also marks files changed on the server since your last update, with a <code>*</code>. Use it when you want to know whether an update would bring changes. It contacts the server, so it needs your login.</p></li></ol><div class="callout see"><strong class="lab">What the letters in svn status mean</strong><div class="tw"><table class=""><tr><th>Letter</th><th>Meaning</th><th>What to do</th></tr><tr class="item"><td><code>M</code></td><td>Modified: you changed a tracked file.</td><td>Normal. Read it in <a href="#review">Review your changes</a> before committing.</td></tr><tr class="item"><td><code>A</code></td><td>Added: marked to be added at your next commit.</td><td>Normal.</td></tr><tr class="item"><td><code>D</code></td><td>Deleted: marked for deletion at your next commit.</td><td>Normal. <code>svn revert</code> undoes it before you commit.</td></tr><tr class="item"><td><code>?</code></td><td>Not tracked: SVN doesn't know this file.</td><td>Add it if it belongs in the project (<a href="#work">Do your work</a>), or remove it (<a href="#cleanup">Clean up</a>).</td></tr><tr class="item"><td><code>!</code></td><td>Missing: a tracked file was removed outside SVN, for example in Finder.</td><td><code>svn revert file</code> brings it back. See <a href="#undo">Undo and recover</a>.</td></tr><tr class="item"><td><code>C</code></td><td>Conflict: you and someone else changed the same thing.</td><td>Don't commit. See <a href="#conflicts">Fix conflicts</a>.</td></tr><tr class="item"><td><code>X</code></td><td>External: a file or folder the project pulls in from another location.</td><td>Normal and not pending. Don't edit or delete it. A file external shows <code>X</code> in the fifth column.</td></tr><tr class="item"><td><code>I</code></td><td>Ignored: SVN skips it on purpose. Only shown with <code>--no-ignore</code>.</td><td>Normal.</td></tr></table></div><p class="note">The first column is about file contents. The second column is about properties (settings attached to a file or folder).</p></div><details class="more"><summary>More options</summary><p>See which folders define externals (read-only): <code class="cmd">svn propget svn:externals -R .</code></p><p class="note">Changing externals is a developer job.</p></details></section>
 
-<h3>Steps</h3>
-<ol class="steps">
-<li>Write down where you are now: <code class="cmd">svn info --show-item url</code>
-  <br>It prints an address like <code>https://example.com/svn/project/branches/branch-a/MyProject</code>.</li>
-<li>Build the new address by changing <strong>only the branch name</strong> in that address. Keep the start and the end exactly the same, for example <code>https://example.com/svn/project/branches/branch-b/MyProject</code>. To see which branches exist, list the folder that holds them, which is the address up to and including <code>/branches/</code>: <code class="cmd">svn ls "&lt;address-up-to-branches&gt;"</code></li>
-<li>Switch: <code class="cmd">svn switch "&lt;new-address&gt;"</code>
-  <br>Wait until the prompt returns. Don't close the terminal or press Ctrl+C. If it gets interrupted, run <code>svn cleanup</code> and repeat the same switch command.</li>
-<li>Read what scrolls by. <code>U</code>, <code>A</code> and <code>D</code> are normal. <code>UU</code> is also normal: the first letter is for the contents and the second for properties, so it means both were updated. <code>X</code> lines are externals, also normal.</li>
-<li>Check for conflicts: <code class="cmd">svn status | grep -E '^(C|.C|......C)'</code>
-  <br>No output means no conflicts. If anything is listed, stop, don't commit, and ask a developer.</li>
-<li>Check where you are: <code class="cmd">svn info</code> should show the new branch on the URL line.</li>
-<li>Open Unity and let it finish reimporting. Run <code>svn status</code> again before you commit anything.</li>
-</ol>
+<section class="topic g-main" id="update" data-group="main"><div class="t-head"><span class="tnum">2</span><h3>Get the latest</h3></div><p class="use"><strong>Use this when:</strong> you start your day, or before you commit, so you work from the newest files.</p><nav class="flow" aria-label="Where this topic fits"><span><span class="fl">Before</span> <a href="#know">Know where you are</a></span><span><span class="fl">Next</span> <a href="#work">Do your work</a></span><span><span class="fl">If something goes wrong</span> <a href="#conflicts">Fix conflicts</a> or <a href="#cleanup">Clean up</a></span></nav><ol class="steps2"><li class="step item"><div class="st-main"><span class="act">Defocus Unity</span><span class="badges"><span class="b rec">Recommended</span></span></div><p class="why">Unity doesn't need to be closed for an update. Just click away from it and stay in the terminal until the update finishes. Unity checks for changed files and refreshes <code>.meta</code> files when its window gets focus, which can interfere while SVN is writing files. When you go back to Unity, it imports the new files.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn status</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Shows which edits are yours before anything changes. If a conflict appears later, you will know it came from a file you edited.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn update</code><span class="badges"><span class="b req">Required</span><span class="b r-local">Local</span></span></div><p class="why">Downloads other people's changes and merges them into your files. Your own edits are kept. Wait until you see <code>At revision N.</code> and the prompt returns.</p></li><li class="step item"><div class="st-main"><span class="act">Read what scrolls by</span><span class="badges"><span class="b rec">Recommended</span></span></div><p class="why">The table below explains each letter. Most are normal.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn status | grep -E '^(C|.C|......C)'</code><span class="badges"><span class="b rec">Recommended</span><span class="b r-read">Read-only</span></span></div><p class="why">Lists conflicts of every kind: in file contents, in properties, and tree conflicts. No output means no conflicts. If anything is listed, don't commit.</p></li></ol><div class="callout see"><strong class="lab">What the update output means</strong><div class="tw"><table class=""><tr><th>You see</th><th>Meaning</th><th>What to do</th></tr><tr class="item"><td><code>U</code></td><td>Updated: the file now matches the server.</td><td>Normal.</td></tr><tr class="item"><td><code>A</code> / <code>D</code></td><td>A file was added or deleted to match the server.</td><td>Normal.</td></tr><tr class="item"><td><code>G</code></td><td>Merged: your edits and the server's were combined without trouble.</td><td>Normal. Worth a look in <a href="#review">Review your changes</a>.</td></tr><tr class="item"><td><code>C</code></td><td>Conflict: your edits and the server's overlap.</td><td>Don't commit. See <a href="#conflicts">Fix conflicts</a>.</td></tr><tr class="item"><td><code>UU</code></td><td>The file's contents and properties were both updated. The first letter is for contents, the second for properties.</td><td>Normal. It is not a conflict.</td></tr><tr class="item"><td><code>Fetching external item</code></td><td>The project's externals are being refreshed.</td><td>Normal.</td></tr><tr class="item"><td><code>At revision N.</code></td><td>The update finished.</td><td>Nothing. You are up to date.</td></tr></table></div></div><div class="callout ask"><strong class="lab">Ask a developer if</strong><p>You want an older revision (<code>svn update -r N</code>) or want every conflict settled by taking the server's version (<code>--accept theirs-full</code>, which discards your edits silently).</p></div><div class="callout errs"><strong class="lab">Errors here</strong><p><code>Working copy locked</code> or <code>E155004</code>: see <a href="#cleanup">Clean up</a>. <code>Unable to connect</code>: check your VPN and Wi-Fi. <code>Authorization failed</code>: ask a developer.</p></div></section>
 
-<h3>Going back</h3>
-<p>Repeat the same steps using the address you wrote down in step 1.</p>
+<section class="topic g-main" id="work" data-group="main"><div class="t-head"><span class="tnum">3</span><h3>Do your work</h3></div><p class="use"><strong>Use this when:</strong> you create, rename, move, delete or lock files. If you only edit existing files, you can skip this topic.</p><nav class="flow" aria-label="Where this topic fits"><span><span class="fl">Before</span> <a href="#update">Get the latest</a></span><span><span class="fl">Next</span> <a href="#review">Review your changes</a></span><span><span class="fl">If something goes wrong</span> <a href="#cleanup">Clean up</a></span></nav><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn add file</code><span class="badges"><span class="b opt">Optional</span><span class="b r-local">Local</span></span></div><p class="why">Only for new files you want to share. A new folder needs adding too, and adding a folder adds what is inside it. Undo with <code>svn revert file</code> before committing.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn move old new</code><span class="badges"><span class="b opt">Optional</span><span class="b r-local">Local</span></span></div><p class="why">Only when you rename or move a tracked file. It keeps the history. Moving a file in Finder makes SVN see one file deleted and another added. Move the asset and its <code>.meta</code> together, with Unity closed.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn delete file</code><span class="badges"><span class="b opt">Optional</span><span class="b r-local">Local</span></span></div><p class="why">Only to remove a tracked file. Delete its <code>.meta</code> too. Undo with <code>svn revert file</code> before committing.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn lock file</code><span class="badges"><span class="b opt">Optional</span><span class="b r-shared">Shared</span></span></div><p class="why">Before editing a scene, prefab or large binary that someone else might also edit. A lock stops others from committing that file. Committing releases the lock for you.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn unlock file</code><span class="badges"><span class="b opt">Optional</span><span class="b r-shared">Shared</span></span></div><p class="why">Only to release your own lock without committing. Never use <code>--force</code> on someone else's lock.</p></li></ol><div class="callout tip"><strong class="lab">Unity rules to follow while you work</strong><ul><li>Commit each <code>.meta</code> file together with its asset. Unity stores the asset's identity in it, and references break for everyone if it is missing or changes.</li><li>Never add generated folders: <code>Library</code>, <code>Temp</code>, <code>Obj</code>, <code>Logs</code> and usually <code>UserSettings</code>. If they show as <code>?</code>, leave them and ask a developer to set up ignore rules.</li><li>Avoid <code>svn add --force .</code> at the project root. It adds every untracked file, including generated folders.</li><li>Don't change project-wide settings: Project Settings, packages, or the <code>ProjectSettings</code> folder.</li></ul></div><div class="callout ask"><strong class="lab">Ask a developer if</strong><p>You need to change ignore rules or other project settings, or delete, move or create folders directly on the server (commands that take a server address). Also for <code>svn unlock --force</code>.</p></div></section>
 
-<h3>Notes</h3>
-<ul class="plain">
-<li>If SVN says <code>E195012</code> or "no common ancestry", the address was wrong and nothing changed. See <a href="#errors">Common errors</a>.</li>
-<li>Never add <code>--ignore-ancestry</code>. It turns off the safety check that protects you from switching to an unrelated location.</li>
-<li>Your next commit goes to the branch you're on. Run <code>svn info</code> and check the URL line before committing.</li>
-<li>For R&amp;D experiments, use a separate checkout and not a switch. See <a href="#branching">R&amp;D branch</a>.</li>
-</ul>
-</section>
+<section class="topic g-main" id="review" data-group="main"><div class="t-head"><span class="tnum">4</span><h3>Review your changes</h3></div><p class="use"><strong>Use this when:</strong> you are about to commit, or you want to see what changed.</p><nav class="flow" aria-label="Where this topic fits"><span><span class="fl">Before</span> <a href="#work">Do your work</a></span><span><span class="fl">Next</span> <a href="#commit">Commit your changes</a></span><span><span class="fl">If something goes wrong</span> <a href="#cleanup">Clean up</a> or <a href="#undo">Undo and recover</a></span></nav><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn status</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Check every line. <code>M</code>, <code>A</code> and <code>D</code> are your work. <code>?</code> files need adding or removing. <code>X</code> lines are externals and are not pending.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn diff</code><span class="badges"><span class="b rec">Recommended</span><span class="b r-read">Read-only</span></span></div><p class="why">Prints your uncommitted changes line by line. Add a file name to see one file. Binary files such as textures have no readable diff, so check them in <code>svn status</code> instead.</p></li></ol><details class="more"><summary>More options: filter the status list</summary><div class="tw"><table class=""><tr><th>Command</th><th>What it does</th></tr><tr class="item"><td><code class="cmd">svn status -q</code></td><td>Lists only tracked files with changes and hides the <code>?</code> files.</td></tr><tr class="item"><td><code class="cmd">svn status | grep '^?'</code></td><td>Lists only new files SVN doesn't track yet.</td></tr><tr class="item"><td><code class="cmd">svn status | grep '^!'</code></td><td>Lists only missing files.</td></tr><tr class="item"><td><code class="cmd">svn status | grep -E '^(C|.C|......C)'</code></td><td>Lists conflicts of every kind. No output means no conflicts.</td></tr><tr class="item"><td><code class="cmd">svn status --ignore-externals</code></td><td>Hides folder externals. File externals still show.</td></tr><tr class="item"><td><code class="cmd">svn status | grep -vE '^.{4}X'</code></td><td>Hides every <code>X</code> line, including file externals. If it prints nothing, nothing is pending.</td></tr><tr class="item"><td><code class="cmd">svn status --no-ignore | grep '^I'</code></td><td>Lists ignored files. A quick way to check that folders like <code>Library</code> are being ignored.</td></tr><tr class="item"><td><code class="cmd">svn status &lt;folder&gt;</code></td><td>Limits the list to one folder.</td></tr><tr class="item"><td><code class="cmd">svn diff | less</code></td><td>Shows a long diff one page at a time. Press <code>q</code> to quit.</td></tr></table></div></details><div class="callout ask"><strong class="lab">Ask a developer if</strong><p><code>svn status</code> shows far more changes than you made. Don't commit. It is often generated folders such as <code>Library</code> or <code>Temp</code>, or the wrong folder.</p></div></section>
 
-<section id="branching" class="t6 prose">
-<h2>R&amp;D branch: your own sandbox</h2>
-<p class="desc">A branch is your own copy of the project on the server. You can experiment and commit as often as you like without touching what the team uses. It's safe as long as you create it in the right place and keep it separate from your normal work. Bringing results back into the main line is a developer job.</p>
+<section class="topic g-main" id="commit" data-group="main"><div class="t-head"><span class="tnum">5</span><h3>Commit your changes</h3></div><p class="use"><strong>Use this when:</strong> your work is ready to share with the team.</p><nav class="flow" aria-label="Where this topic fits"><span><span class="fl">Before</span> <a href="#review">Review your changes</a></span><span><span class="fl">Next</span> <a href="#prepare">Prepare to switch</a></span><span><span class="fl">If something goes wrong</span> <a href="#conflicts">Fix conflicts</a> or <a href="#undo">Undo and recover</a></span></nav><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn status</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Make sure the list holds only what you meant to change.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn add file</code><span class="badges"><span class="b opt">Optional</span><span class="b r-local">Local</span></span></div><p class="why">Only if the list shows <code>?</code> for new files you want to include. Remember their <code>.meta</code> files.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn diff</code><span class="badges"><span class="b rec">Recommended</span><span class="b r-read">Read-only</span></span></div><p class="why">Read what you are about to publish.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn info</code><span class="badges"><span class="b rec">Recommended</span><span class="b r-read">Read-only</span></span></div><p class="why">The URL line shows the branch your commit will go to. It matters most when you use more than one folder or branch.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn commit -m "message"</code><span class="badges"><span class="b req">Required</span><span class="b r-shared">Shared</span></span></div><p class="why">Sends your changes to the server as a new revision that everyone sees. It can't be erased, only reversed with a new commit, so write a short, clear message about what changed and why. Committing also releases your locks.</p></li></ol><div class="callout errs"><strong class="lab">If the commit fails</strong><ul><li><code>... is out of date</code>: someone committed first. <a href="#update">Get the latest</a>, deal with any conflicts, then commit again.</li><li><code>Commit blocked by pre-commit hook</code>: a server rule rejected it, for example the message format or a forbidden file. Read the message. If it is unclear, ask a developer.</li><li><code>... is locked by user ...</code>: another person holds a lock on that file. Message them. Don't force the lock.</li><li><code>Authorization failed</code> or <code>Access forbidden</code>: ask a developer. Don't look for another login.</li></ul></div><div class="callout ask"><strong class="lab">Ask a developer if</strong><p>You committed something wrong, deleted a file and committed it, or committed to the wrong branch. Stop and see <a href="#undo">Undo and recover</a>.</p></div></section>
 
-<h3>Before you start</h3>
-<ul class="plain">
-<li>Ask a developer or lead which branch to copy from, where personal R&amp;D branches live, what to name yours, and whether your account is allowed to create one. Rules differ between teams, and a wrong branch clutters the shared server.</li>
-<li>Large projects take a while to check out the first time. Plan for that.</li>
-</ul>
+<h2 class="group g-branch" id="g-branch" data-group="branch">Branches</h2>
+<p class="gdesc">Moving your folder to another branch, and starting your own R&amp;D branch. Switching only changes files on your computer, not the server.</p>
 
-<h3>Steps</h3>
-<ol class="steps">
-<li>Get the address of what you are copying. In your normal project folder run <code class="cmd">svn info --show-item url</code> (SVN 1.9 or newer, otherwise run <code>svn info</code> and read the URL line). Check with the developer that it's the right source.</li>
-<li>Create the branch on the server: <code class="cmd">svn copy "&lt;source-url&gt;" "&lt;your-branch-url&gt;" -m "Create R&amp;D branch: &lt;short purpose&gt;"</code>
-  <br>This is instant and downloads nothing. Read both addresses twice before pressing Enter, because everyone sees the new branch immediately. If SVN says the destination's parent folder doesn't exist, stop and ask a developer instead of adding options.</li>
-<li>Confirm it exists: <code class="cmd">svn ls "&lt;your-branch-url&gt;"</code> should list the project's files.</li>
-<li>Check it out into a new, clearly named folder: <code class="cmd">svn checkout "&lt;your-branch-url&gt;" project-rnd-yourname</code>
-  <br>Don't use <code>svn switch</code> to start R&amp;D in your normal project folder. A separate checkout keeps your main work and your R&amp;D apart.</li>
-<li>Work in the R&amp;D folder using the <a href="#workflow">daily workflow</a>. Before every commit run <code class="cmd">svn info</code> and check that the URL line ends with your branch name. A commit goes wherever the folder it's run in points.</li>
-<li>When the R&amp;D is finished, or you want to share it, tell a developer. They can review it and merge your branch, or just selected files, into the main line. Ask them to delete the branch when it's no longer needed.</li>
-</ol>
+<section class="topic g-branch" id="prepare" data-group="branch"><div class="t-head"><span class="tnum">6</span><h3>Prepare to switch</h3></div><p class="use"><strong>Use this when:</strong> you are about to move your project folder to a different branch.</p><nav class="flow" aria-label="Where this topic fits"><span><span class="fl">Before</span> <a href="#commit">Commit your changes</a></span><span><span class="fl">Next</span> <a href="#switch">Switch branch</a></span></nav><ol class="steps2"><li class="step item"><div class="st-main"><span class="act">Close Unity</span><span class="badges"><span class="b req">Required</span></span></div><p class="why">A switch rewrites many files. Unity can regenerate files at the same time and cause conflicts.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn info --show-item wc-root</code><span class="badges"><span class="b rec">Recommended</span><span class="b r-read">Read-only</span></span></div><p class="why">Prints the top folder of your project. The last part of that path should match the folder name in your terminal prompt. Switching a subfolder gives you a mixed copy, so run the switch from the top folder (SVN 1.9 or newer).</p></li><li class="step item"><div class="st-main"><code class="cmd">svn status</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Make sure nothing in the list is work you would miss. Commit it first, or save it in the next step.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn diff &gt; my-changes.patch</code><span class="badges"><span class="b opt">Optional</span><span class="b r-local">Local</span></span></div><p class="why">Only if you have edits you don't want to commit yet. It saves text edits to a file. New untracked files and binary files such as textures are not saved properly, so copy those by hand. Restore later with <code>svn patch my-changes.patch</code>.</p></li></ol><div class="callout ask"><strong class="lab">Ask a developer if</strong><p>You aren't sure which branch you need, or <code>svn status</code> shows a <code>C</code>.</p></div></section>
 
-<h3>Rules for R&amp;D folders</h3>
-<ul class="plain">
-<li>Give the two folders obvious names, for example <code>project-main</code> and <code>project-rnd-yourname</code>.</li>
-<li>Don't run <code>svn merge</code> in either folder, and don't switch the R&amp;D folder to another branch. Merging is a developer job.</li>
-<li>Don't copy files by hand between the two folders to move work across. It can silently overwrite someone's newer work in the main folder. To bring R&amp;D work into main, ask a developer.</li>
-<li>Your branch slowly falls behind the main line. Updating it with newer main-line changes is a merge, so ask a developer. Short experiments rarely need it.</li>
-<li>Commit to your branch as often as you like, but only what you need. Don't commit generated folders (see <a href="#unity">Unity basics</a>).</li>
-</ul>
-</section>
+<section class="topic g-branch" id="switch" data-group="branch"><div class="t-head"><span class="tnum">7</span><h3>Switch branch</h3></div><p class="use"><strong>Use this when:</strong> your project folder must point at a different branch.</p><nav class="flow" aria-label="Where this topic fits"><span><span class="fl">Before</span> <a href="#prepare">Prepare to switch</a></span><span><span class="fl">Next</span> <a href="#switchback">Switch back or recover</a> or <a href="#update">Get the latest</a></span><span><span class="fl">If something goes wrong</span> <a href="#conflicts">Fix conflicts</a> or <a href="#switchback">Switch back or recover</a></span></nav><h4 class="sublabel">Switch</h4><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn info --show-item url</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Prints your current branch address, for example <code>https://example.com/svn/project/branches/branch-a/MyProject</code>. Write it down. It is your way back, and the new address is this one with only the branch name changed.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn ls "&lt;branches-folder&gt;"</code><span class="badges"><span class="b opt">Optional</span><span class="b r-read">Read-only</span></span></div><p class="why">Only to see which branches exist. Skip it if you already know the exact name. The branches folder is the address up to and including <code>/branches/</code>.</p></li><li class="step item"><div class="st-main"><span class="act">Build the new address</span><span class="badges"><span class="b req">Required</span></span></div><p class="why">Change only the branch name in your current address. Keep the start and the end exactly the same.<br>From: <code>https://example.com/svn/project/branches/branch-a/MyProject</code><br>To: <code>https://example.com/svn/project/branches/branch-b/MyProject</code><br>A wrong address gives <code>E195012</code> and changes nothing.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn switch "&lt;new-address&gt;"</code><span class="badges"><span class="b req">Required</span><span class="b r-risky">Risky</span></span></div><p class="why">Points your whole project folder at the new branch and downloads the differences. Wait until the prompt returns. Don't close the terminal or press Ctrl+C. If it is interrupted, see <a href="#switchback">Switch back or recover</a>.</p></li></ol><h4 class="sublabel">Check the result</h4><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn status | grep -E '^(C|.C|......C)'</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">No output means no conflicts. If anything is listed, don't commit. See <a href="#conflicts">Fix conflicts</a>.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn info</code><span class="badges"><span class="b rec">Recommended</span><span class="b r-read">Read-only</span></span></div><p class="why">The URL line should show the new branch. Your next commit goes to this branch.</p></li><li class="step item"><div class="st-main"><span class="act">Let Unity reimport</span><span class="badges"><span class="b req">Required</span></span></div><p class="why">Open Unity and wait until it finishes. Then run <code>svn status</code> again before you commit anything.</p></li></ol><div class="callout see"><strong class="lab">What the switch output means</strong><div class="tw"><table class=""><tr><th>You see</th><th>Meaning</th></tr><tr class="item"><td><code>U</code>, <code>A</code>, <code>D</code></td><td>Files changed to match the new branch. Normal.</td></tr><tr class="item"><td><code>UU</code></td><td>Contents and properties both updated. Normal, not a conflict.</td></tr><tr class="item"><td><code>X</code> lines and <code>Fetching external item</code></td><td>The project's externals. Normal.</td></tr><tr class="item"><td><code>C</code></td><td>Conflict. See <a href="#conflicts">Fix conflicts</a>.</td></tr><tr class="item"><td><code>At revision N.</code></td><td>The switch finished.</td></tr></table></div></div><details class="more"><summary>More options: finding branch names</summary><p>Fill in the branches folder automatically from your current address (works only when it contains <code>/branches/</code>; if you are on trunk it lists the wrong folder, which is harmless, so use the manual way):</p><p><code class="cmd">svn ls "$(svn info --show-item url | sed 's|/branches/.*|/branches/|')"</code></p><p>The branch list can be very long. Narrow it down:</p><div class="tw"><table class=""><tr><th>Command</th><th>What it does</th></tr><tr class="item"><td><code class="cmd">svn ls "&lt;branches-folder&gt;" | grep -i word</code></td><td>Shows only branch names containing a word.</td></tr><tr class="item"><td><code class="cmd">svn ls "&lt;branches-folder&gt;" | less</code></td><td>Scroll the list one page at a time. Press <code>q</code> to quit.</td></tr><tr class="item"><td><code class="cmd">svn ls -v "&lt;branches-folder&gt;" | sort -n | tail -20</code></td><td>Shows the 20 most recently changed branches.</td></tr></table></div></details><div class="callout ask"><strong class="lab">Ask a developer if</strong><p>You want to use <code>--ignore-ancestry</code>, the switch reports conflicts, or you are unsure which branch to use.</p></div><div class="callout errs"><strong class="lab">Errors here</strong><p><code>E195012</code>, "does not share common version control ancestry" or "shares no common ancestry": the address is not the same kind of folder as your project folder, usually because part of the path is missing, such as the project folder at the end. Nothing was changed. Rebuild the address from step 1, changing only the branch name. If it still fails, ask a developer. Never add <code>--ignore-ancestry</code>, because that turns the safety check off.</p></div></section>
 
-<section id="recovery" class="t5 searchable">
-<h2>Fixing mistakes</h2>
-<p class="desc">Anything that has been committed stays in the repository history, so it can be recovered by a developer. The only work that can be truly lost is uncommitted edits, which is why Tier 3 commands need care.</p>
-<div class="tw">
-<table>
-<tr><th>Situation</th><th>What to do</th></tr>
-<tr><td>I want to throw away my uncommitted edits to a file</td><td><code class="cmd">svn revert file</code>
-<p>This is permanent. If there's any doubt, save a copy first with <code>svn diff file &gt; backup.patch</code>.</p></td></tr>
-<tr><td>I want to save my edits before something risky</td><td><code class="cmd">svn diff &gt; my-changes.patch</code>
-<p>This writes every uncommitted change to a text file. Re-apply it later with <code>svn patch my-changes.patch</code>. New files that aren't added yet are not included, and binary files like textures are not saved properly, so copy those somewhere by hand.</p></td></tr>
-<tr><td>I deleted a file in Finder and it shows <code>!</code></td><td><code class="cmd">svn revert file</code>
-<p>This brings back the last committed version. For a folder use <code>svn revert -R folder</code>.</p></td></tr>
-<tr><td>I forgot to add a file (or its <code>.meta</code>) before committing</td><td><code class="cmd">svn add file</code>, then <code>svn commit -m "Add missing file"</code></td></tr>
-<tr><td>Commit says a file or folder is "out of date"</td><td>Someone committed before you. Run <code class="cmd">svn update</code>, deal with any conflicts, then commit again.</td></tr>
-<tr><td>SVN says the working copy is locked</td><td><code class="cmd">svn cleanup</code>
-<p>This usually happens after an interrupted update or a crash.</p></td></tr>
-<tr><td>I locked a file and forgot to unlock it</td><td><code class="cmd">svn unlock file</code>
-<p>If someone else holds a lock you need released, ask them or a developer.</p></td></tr>
-<tr><td>I committed something wrong, deleted a file and committed it, or committed to the wrong branch</td><td><strong>Stop and ask a developer.</strong> Don't commit anything else. Tell them three things: the revision number (find it with <code>svn log -l 5</code>), the branch address (the URL line from <code>svn info</code>), and what you meant to do. Whatever you committed stays in history, so it can be reversed.</td></tr>
-<tr><td>SVN shows <code>?</code> files I don't want</td><td><code class="cmd">svn status | grep '^?'</code> lists them. Delete the ones you want gone in Finder, so they go to the Trash. To remove all of them at once use <code>svn cleanup --remove-unversioned</code>, which is permanent (see Tier 3). If there are hundreds, or <code>Library</code> or <code>Temp</code> appear in the list, stop and ask a developer.</td></tr>
-<tr><td>A few files marked <code>X</code> always show in <code>svn status</code></td><td>Nothing to fix. They are file externals, not pending changes, and <code>svn revert</code> can't clear them. Hide them with <code class="cmd">svn status | grep -vE '^.{4}X'</code>. Don't edit or delete them.</td></tr>
-<tr><td>I switched to the wrong branch</td><td>Switch back with the address you wrote down before switching: <code class="cmd">svn switch "&lt;previous-address&gt;"</code>. If you already committed on the wrong branch, don't fix it yourself. Ask a developer.</td></tr>
-<tr><td>An update left conflicts and I'm unsure</td><td>Don't commit. Follow <a href="#conflicts">Fixing conflicts</a>.</td></tr>
-</table>
-</div>
-</section>
+<section class="topic g-branch" id="switchback" data-group="branch"><div class="t-head"><span class="tnum">8</span><h3>Switch back or recover</h3></div><p class="use"><strong>Use this when:</strong> you want to return to your previous branch, picked the wrong one, or a switch was interrupted.</p><nav class="flow" aria-label="Where this topic fits"><span><span class="fl">Before</span> <a href="#switch">Switch branch</a></span><span><span class="fl">Next</span> <a href="#update">Get the latest</a> or <a href="#work">Do your work</a></span><span><span class="fl">If something goes wrong</span> <a href="#conflicts">Fix conflicts</a></span></nav><ol class="steps2"><li class="step item"><div class="st-main"><span class="act">Repeat the Prepare steps</span><span class="badges"><span class="b req">Required</span></span></div><p class="why">Close Unity and check <code>svn status</code> first. See <a href="#prepare">Prepare to switch</a>.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn switch "&lt;previous-address&gt;"</code><span class="badges"><span class="b req">Required</span><span class="b r-risky">Risky</span></span></div><p class="why">Use the address you wrote down in step 1 of <a href="#switch">Switch branch</a>. This also fixes switching to the wrong branch, as long as you haven't committed on it.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn cleanup</code><span class="badges"><span class="b opt">Optional</span><span class="b r-local">Local</span></span></div><p class="why">Only if a switch was interrupted or SVN says the working copy is locked. Then repeat the same switch command.</p></li><li class="step item"><div class="st-main"><span class="act">Check the result</span><span class="badges"><span class="b rec">Recommended</span></span></div><p class="why">Run the checks from <a href="#switch">Switch branch</a>: the conflict check, <code>svn info</code>, and the Unity reimport.</p></li></ol><div class="callout ask"><strong class="lab">Ask a developer if</strong><p>You already committed on the wrong branch, or you switched only a subfolder and your folder is now mixed.</p></div></section>
 
-<section id="conflicts" class="ex prose">
-<h2>Fixing conflicts</h2>
-<p class="desc">A conflict happens when you and someone else changed the same file in overlapping ways. SVN won't guess, so it marks the file <code>C</code> and asks you to decide. Nothing is lost: both versions are kept next to your file.</p>
+<section class="topic g-branch" id="rnd" data-group="branch"><div class="t-head"><span class="tnum">9</span><h3>R&amp;D branch: your own sandbox</h3></div><p class="use"><strong>Use this when:</strong> you want to experiment without touching what the team uses.</p><nav class="flow" aria-label="Where this topic fits"><span><span class="fl">Before</span> Agree the location and name with a developer.</span><span><span class="fl">Next</span> <a href="#work">Do your work</a></span></nav><div class="callout tip"><strong class="lab">Before you start</strong><p>Ask a developer or lead which branch to copy from, where personal R&amp;D branches live, what to name yours, and whether your account may create one. Rules differ between teams, and a wrong branch clutters the shared server. A large project also takes a while to check out the first time.</p></div><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn info --show-item url</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Prints the address of what you are copying. Check with the developer that it is the right source. On older SVN, run <code>svn info</code> and read the URL line.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn copy "&lt;source-url&gt;" "&lt;your-branch-url&gt;" -m "Create R&amp;D branch: &lt;short purpose&gt;"</code><span class="badges"><span class="b req">Required</span><span class="b r-shared">Shared</span></span></div><p class="why">Creates the branch on the server instantly and downloads nothing. Read both addresses twice before you press Enter, because everyone sees the new branch immediately. If SVN says the destination's parent folder doesn't exist, stop and ask a developer.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn ls "&lt;your-branch-url&gt;"</code><span class="badges"><span class="b rec">Recommended</span><span class="b r-read">Read-only</span></span></div><p class="why">Should list the project's files, which confirms the branch exists.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn checkout "&lt;your-branch-url&gt;" project-rnd-yourname</code><span class="badges"><span class="b req">Required</span><span class="b r-local">Local</span></span></div><p class="why">Downloads the branch into a new, clearly named folder. Use a separate checkout, not <code>svn switch</code>, so your main work and your R&amp;D stay apart.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn info</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Run it inside the R&amp;D folder before every commit and check that the URL line ends with your branch name. A commit goes wherever the folder points.</p></li><li class="step item"><div class="st-main"><span class="act">Tell a developer when you are done</span><span class="badges"><span class="b req">Required</span></span></div><p class="why">They can review your work and merge the branch, or selected files, into the main line. Ask them to delete the branch when it is no longer needed.</p></li></ol><div class="callout tip"><strong class="lab">Rules for R&amp;D folders</strong><ul><li>Name the two folders clearly, for example <code>project-main</code> and <code>project-rnd-yourname</code>.</li><li>Don't run <code>svn merge</code> in either folder, and don't switch the R&amp;D folder to another branch.</li><li>Don't copy files by hand between the two folders to move work across. It can silently overwrite someone's newer work.</li><li>Your branch slowly falls behind the main line. Updating it with newer main-line changes is a merge, so ask a developer. Short experiments rarely need it.</li><li>Commit to your branch as often as you like, but only what you need. Never commit generated folders.</li></ul></div><div class="callout ask"><strong class="lab">Ask a developer for</strong><p>The branch location and name, permission to create it, merging your work back, updating your branch from the main line, and deleting the branch when you are finished.</p></div></section>
 
-<h3>What to do</h3>
-<ol class="steps">
-<li>Find conflicted files with <code class="cmd">svn status</code>. They show <code>C</code> in the first column and also appear in the output of <code>svn update</code>.</li>
-<li>Don't commit. Don't delete the extra files SVN created next to the conflicted file (listed below).</li>
-<li>Check what kind of file it is. If it's a scene, prefab, material, texture, model, PSD, data or config file, or any other binary or Unity asset, don't try to fix it by hand. Go to "Before you ask for help" below.</li>
-<li>Only if it's a plain text file such as notes or documentation, and the change is small and you understand both sides, open it and search for <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>. Keep the lines that are correct and delete the marker lines. Save the file, then run <code class="cmd">svn resolve --accept working file</code>.</li>
-<li>Run <code class="cmd">svn diff file</code> to check the result, then commit.</li>
-</ol>
+<h2 class="group g-side" id="g-side" data-group="side">Side paths</h2>
+<p class="gdesc">Jump in from any step when something needs fixing, and use <em>Back to where you were</em> to return.</p>
 
-<div class="tw">
-<table>
-<tr><th>Extra file</th><th>What it holds</th></tr>
-<tr><td><code>file.mine</code></td><td>Your version of the file, as it was before the update.</td></tr>
-<tr><td><code>file.rOLD</code> (for example <code>file.r100</code>)</td><td>The server version your edits were based on.</td></tr>
-<tr><td><code>file.rNEW</code> (for example <code>file.r105</code>)</td><td>The latest server version.</td></tr>
-</table>
-</div>
+<section class="topic g-side nonum" id="conflicts" data-group="side"><div class="t-head"><h3>Fix conflicts</h3></div><p class="use"><strong>Use this when:</strong> any command shows a <code>C</code>, whether it came from an update, a switch or a commit that says "out of date".</p><p class="lead">A conflict happens when you and someone else changed the same file in overlapping ways. SVN won't guess, so it marks the file <code>C</code> and asks you to decide. Nothing is lost: both versions are kept next to your file.</p><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn status | grep -E '^(C|.C|......C)'</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Lists every conflicted file. They also show <code>C</code> in the output of the command that caused them.</p></li><li class="step item"><div class="st-main"><span class="act">Stop</span><span class="badges"><span class="b req">Required</span></span></div><p class="why">Don't commit. Don't delete the extra files SVN created next to the conflicted file (listed below).</p></li><li class="step item"><div class="st-main"><span class="act">Check the file type</span><span class="badges"><span class="b req">Required</span></span></div><p class="why">If it is a scene, prefab, material, texture, model, PSD, data or config file, or any other binary or Unity asset, don't fix it by hand. Go to "Before you ask for help" below.</p></li><li class="step item"><div class="st-main"><span class="act">Fix a plain text file</span><span class="badges"><span class="b opt">Optional</span></span></div><p class="why">Only for plain text such as notes or documentation, when the change is small and you understand both sides. Open the file and search for <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>. Keep the lines that are correct and delete the marker lines. Save the file.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn resolve --accept working file</code><span class="badges"><span class="b req">Required</span><span class="b r-local">Local</span></span></div><p class="why">Tells SVN the conflict is fixed. Do it only after you have checked the file yourself. It also removes the extra files.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn diff file</code><span class="badges"><span class="b rec">Recommended</span><span class="b r-read">Read-only</span></span></div><p class="why">Check the result, then <a href="#commit">commit your changes</a>.</p></li></ol><pre>&lt;&lt;&lt;&lt;&lt;&lt;&lt; .mine
+your version of the lines
+=======
+the server's version of the lines
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; .r105</pre><p class="note">This is how a conflict looks inside a text file.</p><div class="callout see"><strong class="lab">The extra files SVN creates</strong><div class="tw"><table class=""><tr><th>Extra file</th><th>What it holds</th></tr><tr class="item"><td><code>file.mine</code></td><td>Your version of the file, as it was before the update.</td></tr><tr class="item"><td><code>file.rOLD</code> (for example <code>file.r100</code>)</td><td>The server version your edits were based on.</td></tr><tr class="item"><td><code>file.rNEW</code> (for example <code>file.r105</code>)</td><td>The latest server version.</td></tr></table></div></div><div class="callout ask"><strong class="lab">Before you ask for help</strong><ul><li>Copy the output of <code>svn status</code> and note the path of each conflicted file.</li><li>Copy <code>file.mine</code> to a safe place outside the project folder so your version can't be lost.</li><li>Note which branch you are on (the URL line from <code>svn info</code>).</li><li>Find out who made the other change with <code class="cmd">svn log -l 5 file</code>. Agree together which version to keep. Only then keep one side with <code>svn resolve --accept mine-full file</code> or <code>--accept theirs-full file</code>. The second one discards your edits to that file.</li></ul></div><div class="callout ask"><strong class="lab">Tree conflicts</strong><p>A tree conflict happens when someone moved, renamed or deleted a file you edited. <code>svn status</code> shows an extra line starting with <code>&gt;</code> under the file. Don't use any <code>--accept</code> shortcut. Ask a developer.</p></div><p class="backrow"><a href="#top" class="back">Back to where you were</a></p></section>
 
-<h3>Before you ask for help</h3>
-<ul class="plain">
-<li>Copy the output of <code>svn status</code> and note the path of each conflicted file.</li>
-<li>Copy <code>file.mine</code> to a safe place outside the project folder so your version can't be lost.</li>
-<li>Note which branch you're on (the URL line from <code>svn info</code>).</li>
-<li>Find out who made the other change with <code>svn log -l 5 file</code>. Agree together which version to keep. Only after that, a developer or you can keep one side with <code>svn resolve --accept mine-full file</code> or <code>--accept theirs-full file</code>. The second one discards your edits to that file.</li>
-</ul>
+<section class="topic g-side nonum" id="cleanup" data-group="side"><div class="t-head"><h3>Clean up</h3></div><p class="use"><strong>Use this when:</strong> you see <code>?</code> files you don't want, or SVN says the working copy is locked.</p><p class="lead">Two different jobs: removing files SVN doesn't track, and unlocking a folder SVN says is stuck.</p><h4 class="sublabel">A. Remove files SVN doesn't track</h4><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn status | grep '^?'</code><span class="badges"><span class="b req">Required</span><span class="b r-read">Read-only</span></span></div><p class="why">Preview first. This list is exactly what the commands below would delete. Look for new assets or <code>.meta</code> files you haven't added yet, and for <code>Library</code>, <code>Temp</code> or <code>Logs</code>. If those are listed, SVN isn't ignoring them, so ask a developer before going further.</p></li><li class="step item"><div class="st-main"><span class="act">Delete by hand in Finder</span><span class="badges"><span class="b rec">Recommended</span><span class="b r-local">Local</span></span></div><p class="why">Safest. Deleted files go to the Trash, so you can restore them.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn cleanup --remove-unversioned</code><span class="badges"><span class="b opt">Optional</span><span class="b r-risky">Risky</span></span></div><p class="why">Only to remove all untracked files at once. <strong>Permanent</strong>, with no Trash and no undo. Only your computer is affected, not the server. Needs SVN 1.9 or newer.</p></li><li class="step item"><div class="st-main"><code class="cmd">svn cleanup --remove-unversioned &lt;folder&gt;</code><span class="badges"><span class="b opt">Optional</span><span class="b r-risky">Risky</span></span></div><p class="why">The same for one folder only. Preview it first with <code>svn status &lt;folder&gt; | grep '^?'</code>.</p></li></ol><h4 class="sublabel">B. Unlock a stuck folder</h4><ol class="steps2"><li class="step item"><div class="st-main"><code class="cmd">svn cleanup</code><span class="badges"><span class="b opt">Optional</span><span class="b r-local">Local</span></span></div><p class="why">Only when SVN says the working copy is locked (<code>E155004</code>), usually after a crash or an interrupted update. It repairs the folder and removes stale locks. Plain <code>svn cleanup</code> deletes nothing.</p></li></ol><div class="callout ask"><strong class="lab">Ask a developer if</strong><p>You think about <code>svn cleanup --remove-ignored</code>. It also deletes ignored files such as <code>Library</code> and <code>Temp</code>, and Unity then needs a very long rebuild. Also ask if there are hundreds of <code>?</code> files, or <code>Library</code> shows up in the list.</p></div><div class="callout see"><strong class="lab">Files marked X</strong><p>Those are externals, not untracked files. Cleanup doesn't touch them and <code>svn revert</code> can't clear them. Don't edit or delete them.</p></div><p class="backrow"><a href="#top" class="back">Back to where you were</a></p></section>
 
-<h3>Tree conflicts</h3>
-<p>A tree conflict happens when someone moved, renamed or deleted a file you edited. <code>svn status</code> shows an extra line starting with <code>&gt;</code> under the file. Don't use any <code>--accept</code> shortcut. Ask a developer.</p>
-</section>
+<section class="topic g-side nonum" id="undo" data-group="side"><div class="t-head"><h3>Undo and recover</h3></div><p class="use"><strong>Use this when:</strong> something went wrong with your local work or a commit.</p><p class="lead">Anything that has been committed stays in the repository history, so a developer can recover it. The only work that can be truly lost is uncommitted edits, which is why the risky commands need care.</p><div class="tw"><table class=""><tr><th>Situation</th><th>What to do</th><th>Risk</th></tr><tr class="item"><td>I want to throw away my edits to one file</td><td><code class="cmd">svn revert file</code><p class="note">Permanent. If there is any doubt, save a copy first with <code>svn diff file &gt; backup.patch</code>.</p></td><td><span class="b r-risky">Risky</span></td></tr><tr class="item"><td>I want to throw away all my edits in this folder</td><td><code class="cmd">svn revert -R .</code><p class="note">Permanent. Read the <code>svn status</code> list first, because it is the only warning you get.</p></td><td><span class="b r-risky">Risky</span></td></tr><tr class="item"><td>I want to save my edits before something risky</td><td><code class="cmd">svn diff &gt; my-changes.patch</code><p class="note">Saves text edits to a file. Restore with <code>svn patch my-changes.patch</code>. New untracked files and binary files such as textures are not saved properly, so copy those by hand.</p></td><td><span class="b r-local">Local</span></td></tr><tr class="item"><td>I deleted a file in Finder and it shows <code>!</code></td><td><code class="cmd">svn revert file</code><p class="note">Brings back the last committed version. For a folder use <code>svn revert -R folder</code>.</p></td><td><span class="b r-local">Local</span></td></tr><tr class="item"><td>I forgot to add a file (or its <code>.meta</code>) before committing</td><td><code class="cmd">svn add file</code><p class="note">Then <code>svn commit -m "Add missing file"</code>.</p></td><td><span class="b r-local">Local</span></td></tr><tr class="item"><td>I locked a file and forgot to unlock it</td><td><code class="cmd">svn unlock file</code><p class="note">If someone else holds a lock you need released, ask them or a developer.</p></td><td><span class="b r-shared">Shared</span></td></tr><tr class="item"><td>A commit says a file or folder is out of date</td><td>See <a href="#update">Get the latest</a>, then commit again.</td><td><span class="b r-read">Read-only</span></td></tr><tr class="item"><td>SVN says the working copy is locked</td><td>See <a href="#cleanup">Clean up</a>.</td><td><span class="b r-local">Local</span></td></tr><tr class="item"><td>I committed something wrong, deleted a file and committed it, or committed to the wrong branch</td><td><strong>Stop and ask a developer.</strong> Don't commit anything else. Tell them the revision number (find it with <code>svn log -l 5</code>), the branch address (the URL line from <code>svn info</code>), and what you meant to do. Whatever you committed stays in history, so it can be reversed.</td><td><span class="b r-ask">Ask dev</span></td></tr><tr class="item"><td>I switched to the wrong branch</td><td>See <a href="#switchback">Switch back or recover</a>.</td><td><span class="b r-risky">Risky</span></td></tr></table></div><p class="backrow"><a href="#top" class="back">Back to where you were</a></p></section>
 
-<section id="errors" class="ex searchable">
-<h2>Common errors</h2>
-<p class="desc">Messages you may see, what they mean, and who should fix them. Message wording can vary slightly between SVN versions.</p>
-<div class="tw">
-<table>
-<tr><th>Message</th><th>What it means and what to do</th></tr>
-<tr><td><code>Working copy locked</code> or <code>E155004</code>, "already locked"</td><td><span class="tag tag1">You can fix</span> A previous command was interrupted. Run <code class="cmd">svn cleanup</code>, then try again.</td></tr>
-<tr><td><code>E195012</code>, "does not share common version control ancestry" or "shares no common ancestry"</td><td><span class="tag tag1">You can fix</span> The address you gave isn't the same kind of folder as your project folder, often because part of the path is missing, such as the project folder at the end. Nothing was changed. Run <code class="cmd">svn info --show-item url</code>, then build the new address by changing only the branch name, and try again. If it still fails, ask a developer. Never add <code>--ignore-ancestry</code>, because that turns the safety check off.</td></tr>
-<tr><td><code>... is out of date</code></td><td><span class="tag tag1">You can fix</span> Someone committed before you. Run <code class="cmd">svn update</code>, deal with any conflicts, then commit again.</td></tr>
-<tr><td><code>... is not a working copy</code></td><td><span class="tag tag1">You can fix</span> You're not inside a project folder. Use <code>cd</code> to go into it and check with <code>svn info</code>.</td></tr>
-<tr><td><code>... is not under version control</code></td><td><span class="tag tag1">You can fix</span> The file is new. Add it with <code class="cmd">svn add file</code>. If the folder is also new, add the folder, which adds what's inside.</td></tr>
-<tr><td><code>path not found</code> or <code>non-existent in revision</code></td><td><span class="tag tag1">You can fix</span> A typo in the address, or the path doesn't exist there. Check the parent with <code>svn ls</code>.</td></tr>
-<tr><td><code>Unable to connect to a repository</code> or <code>Could not resolve hostname</code></td><td><span class="tag tag1">You can fix</span> A network problem. Check your VPN and Wi-Fi and try again. If it keeps failing, ask IT.</td></tr>
-<tr><td><code>... is locked by user ...</code></td><td><span class="tag tag3">Contact the person</span> Someone else holds a lock on that file. Message the person named in the error. Don't force the lock.</td></tr>
-<tr><td><code>Commit blocked by pre-commit hook</code></td><td><span class="tag tag3">Read, then ask</span> A server rule rejected your commit, for example because of the message format or a forbidden file. Read the message. If it's unclear, ask a developer.</td></tr>
-<tr><td><code>Authorization failed</code> or <code>Access forbidden</code></td><td><span class="tag tag3">Ask a developer</span> Your login may be wrong or your account may lack access to that location. Try again once, carefully, then ask. Don't look for another login.</td></tr>
-<tr><td><code>Tree conflict</code></td><td><span class="tag tag3">Ask a developer</span> See <a href="#conflicts">Fixing conflicts</a>.</td></tr>
-<tr><td><code>svn: command not found</code> or <code>command not found: svn</code></td><td><span class="tag tag3">Ask IT or a developer</span> The SVN command-line tools aren't installed or aren't on your path.</td></tr>
-</table>
-</div>
-</section>
+<section class="topic g-side nonum" id="explore" data-group="side"><div class="t-head"><h3>Explore history and the server</h3></div><p class="use"><strong>Use this when:</strong> you want to see who changed what, or look around the server without changing anything.</p><p class="lead">All of these only read information. None of them changes your files or the server.</p><div class="tw"><table class=""><tr><th>Command</th><th>What it does</th></tr><tr class="item"><td><code class="cmd">svn log</code></td><td>Shows commit history: revision, author, date and message. Add <code>-l N</code> to limit it to N entries, <code>-v</code> to list the changed files, <code>-r A:B</code> to pick a revision range, <code>--stop-on-copy</code> to stop where the branch was created, and <code>-q</code> for a short list.</td></tr><tr class="item"><td><code class="cmd">svn log -l 10</code></td><td>Shows the last 10 commits.</td></tr><tr class="item"><td><code class="cmd">svn log -l 10 -v</code></td><td>The same, with the files each commit changed.</td></tr><tr class="item"><td><code class="cmd">svn log -l 5 file</code></td><td>Shows the last 5 commits for one file.</td></tr><tr class="item"><td><code class="cmd">svn log -r A:B</code></td><td>Shows a range of revisions.</td></tr><tr class="item"><td><code class="cmd">svn log -v -r N</code></td><td>Shows what one revision changed.</td></tr><tr class="item"><td><code class="cmd">svn log --search "word" -l 20</code></td><td>Finds commits whose message or author contains a word, and limits the output to 20 entries. Needs SVN 1.8 or newer.</td></tr><tr class="item"><td><code class="cmd">svn log --stop-on-copy -q</code></td><td>Lists the revisions on this branch only. The last one is where the branch was created.</td></tr><tr class="item"><td><code class="cmd">svn diff -c N</code></td><td>Shows what revision N changed.</td></tr><tr class="item"><td><code class="cmd">svn diff -r A:B file</code></td><td>Compares a file between two revisions.</td></tr><tr class="item"><td><code class="cmd">svn diff --summarize -r A:B .</code></td><td>Lists only the names of files that differ between two revisions, without the line changes.</td></tr><tr class="item"><td><code class="cmd">svn blame file</code></td><td>Shows each line of a text file with the revision and author who last changed it. Useful for finding who to ask about a change.</td></tr><tr class="item"><td><code class="cmd">svn cat -r N file</code></td><td>Prints a file as it was at revision N, without touching your copy.</td></tr><tr class="item"><td><code class="cmd">svn info --show-item last-changed-author file</code></td><td>Prints only who last changed a file. Needs SVN 1.9 or newer.</td></tr><tr class="item"><td><code class="cmd">svn ls -v &lt;url or path&gt;</code></td><td>Lists files and folders at a location, even on the server, with revision and author. No checkout needed.</td></tr><tr class="item"><td><code class="cmd">svn list -R</code></td><td>The same, recursive. It can be very long on a big project, so pipe it into <code>head</code> or <code>less</code>.</td></tr><tr class="item"><td><code class="cmd">svn export &lt;url&gt; folder</code></td><td>Downloads a clean copy of a branch or folder with no <code>.svn</code> data. It writes to a new folder only.</td></tr><tr class="item"><td><code class="cmd">svn proplist -v</code></td><td>Shows properties attached to files or folders, such as <code>svn:ignore</code>, <code>svn:externals</code> and <code>svn:needs-lock</code>. Viewing is safe. Changing them is for developers.</td></tr><tr class="item"><td><code class="cmd">svn help &lt;command&gt;</code></td><td>Prints the full options for any command.</td></tr></table></div></section>
 
-<section id="unity" class="ex searchable">
-<h2>Unity basics</h2>
-<p class="desc">Habits that keep a Unity project healthy under SVN.</p>
-<div class="tw">
-<table>
-<tr><th>Tip</th><th>Why it matters</th></tr>
-<tr><td>Commit each <code>.meta</code> file together with its asset. A new folder has its own <code>.meta</code>, so add both.</td><td>Unity stores an asset's GUID in its <code>.meta</code> file. If the file is missing or changes, references to that asset break for everyone.</td></tr>
-<tr><td>Move and rename with <code>svn move</code>, on both the asset and its <code>.meta</code>, ideally with Unity closed. If unsure, ask.</td><td>Moving in Finder makes SVN see one file deleted and one added, and the <code>.meta</code> may not follow.</td></tr>
-<tr><td>Never commit generated folders: <code>Library</code>, <code>Temp</code>, <code>Obj</code>, <code>Logs</code> and usually <code>UserSettings</code>. If they show up as <code>?</code> in <code>svn status</code>, don't add them, and ask a developer to set up ignore rules.</td><td>They are rebuilt automatically, are huge, and cause constant conflicts. If they are listed as <code>?</code>, don't run <code>svn cleanup --remove-unversioned</code>, because it would delete them.</td></tr>
-<tr><td>Avoid <code>svn add --force .</code> at the project root.</td><td>It adds every unversioned file below it, including generated folders that aren't ignored. Add specific files or folders instead.</td></tr>
-<tr><td>Lock scenes, prefabs and large binaries before editing them if others might touch them: <code class="cmd">svn lock file</code></td><td>These files merge badly. A lock stops others from committing the file. A normal commit releases the lock for you.</td></tr>
-<tr><td>Close Unity during <code>svn update</code> and when moving or renaming files.</td><td>Unity can regenerate <code>.meta</code> files or reimport assets while SVN is writing files, which causes odd conflicts or missing <code>.meta</code> files.</td></tr>
-<tr><td>After Unity finishes importing, run <code>svn status</code> and read the list before committing.</td><td>Unity can rewrite <code>.meta</code> files during import. Commit only the changes you meant to make.</td></tr>
-<tr><td>Don't change project-wide settings: Project Settings, packages, or anything in the <code>ProjectSettings</code> folder. Ask a developer.</td><td>These settings apply to everyone who opens the project.</td></tr>
-</table>
-</div>
-</section>
+<h2 class="group g-ref" id="g-ref" data-group="ref">Reference</h2>
+<p class="gdesc">Look things up here. Nothing in this part is a step to follow.</p>
 
-<section id="variations" class="ex searchable">
-<h2>Handy variations</h2>
-<p class="desc">Useful forms of the commands above, including a few that combine commands with <code>grep</code> or <code>less</code>.</p>
-<div class="tw">
-<table>
-<tr><th>Command</th><th>What it does</th></tr>
-<tr><td><code class="cmd">svn status -q</code></td><td>Lists only tracked files with changes and hides the <code>?</code> files.</td></tr>
-<tr><td><code class="cmd">svn status | grep '^?'</code></td><td>Lists only new files that SVN doesn't track yet.</td></tr>
-<tr><td><code class="cmd">svn status | grep '^!'</code></td><td>Lists only missing files.</td></tr>
-<tr><td><code class="cmd">svn status | grep -E '^(C|.C|......C)'</code></td><td>Lists conflicts of every kind: in file contents, in properties, and tree conflicts. No output means no conflicts.</td></tr>
-<tr><td><code class="cmd">svn status --ignore-externals</code></td><td>Hides folder externals. File externals still show.</td></tr>
-<tr><td><code class="cmd">svn status | grep -vE '^.{4}X'</code></td><td>Hides every <code>X</code> line, including file externals. If it prints nothing, nothing is pending.</td></tr>
-<tr><td><code class="cmd">svn status --no-ignore | grep '^I'</code></td><td>Lists ignored files. A quick way to check that folders like <code>Library</code> are being ignored.</td></tr>
-<tr><td><code class="cmd">svn status &lt;folder&gt;</code></td><td>Limits the status list to one folder.</td></tr>
-<tr><td><code class="cmd">svn ls "&lt;address-up-to-branches&gt;"</code></td><td>Lists the branches on the server, for use with <code>svn switch</code>.</td></tr>
-<tr><td><code class="cmd">svn log -l 10 -v</code></td><td>Shows the last 10 commits with the files each one changed.</td></tr>
-<tr><td><code class="cmd">svn log --search "word" -l 20</code></td><td>Finds commits whose message or author contains a word, and limits the output to 20 entries. Needs SVN 1.8 or newer.</td></tr>
-<tr><td><code class="cmd">svn log --stop-on-copy -q</code></td><td>Lists the revisions on this branch only. The last one is where the branch was created.</td></tr>
-<tr><td><code class="cmd">svn diff | less</code></td><td>Shows a long diff one page at a time. Press <code>q</code> to quit.</td></tr>
-<tr><td><code class="cmd">svn diff --summarize -r A:B .</code></td><td>Lists only the names of files that differ between two revisions, without the line changes.</td></tr>
-<tr><td><code class="cmd">svn info --show-item url</code></td><td>Prints only the branch URL. Use <code>revision</code> instead of <code>url</code> for the revision number. Needs SVN 1.9 or newer.</td></tr>
-<tr><td><code class="cmd">svn diff &gt; my-changes.patch</code></td><td>Saves your uncommitted text edits to a patch file as a backup. Restore with <code>svn patch my-changes.patch</code>.</td></tr>
-</table>
-</div>
-</section>
+<section class="topic g-ref nonum" id="devonly" data-group="ref"><div class="t-head"><h3>Developer-only commands</h3></div><p class="use"><strong>Use this when:</strong> you wonder why a command isn't covered with steps here. These can affect other people's work or the whole project, and some can't be undone by you.</p><div class="tw"><table class=""><tr><th>Command or situation</th><th>Why a developer should do it</th></tr><tr class="item"><td><code>svn merge</code> (any form)</td><td>It changes many files at once and can create conflicts that take hours to untangle. That includes bringing main-line changes into your R&amp;D branch, and bringing your R&amp;D work back.</td></tr><tr class="item"><td><code>svn switch</code> with <code>--ignore-ancestry</code></td><td>The option turns off the safety check against switching to an unrelated location.</td></tr><tr class="item"><td><code>svn update -r N</code></td><td>It moves your folder to an old revision. Editing or committing from there causes confusion.</td></tr><tr class="item"><td><code>svn update --accept theirs-full</code></td><td>It silently throws away your edits in every conflicted file.</td></tr><tr class="item"><td><code>svn upgrade</code></td><td>One-way change. Older SVN tools may no longer open the folder afterwards.</td></tr><tr class="item"><td><code>svn cleanup --remove-ignored</code></td><td>It also deletes ignored files such as <code>Library</code> and <code>Temp</code>, which forces a very long Unity rebuild.</td></tr><tr class="item"><td><code>svn delete</code>, <code>move</code>, <code>mkdir</code> or <code>copy</code> on a server address</td><td>These act on the shared server immediately and everyone sees them. The only exception is creating your own R&amp;D branch.</td></tr><tr class="item"><td><code>svn propset</code>, ignore rules, <code>svn:externals</code></td><td>Project-wide settings. A wrong value affects everyone's checkout.</td></tr><tr class="item"><td><code>svn unlock --force</code></td><td>Breaks a lock held by someone else, who could lose work.</td></tr><tr class="item"><td>Reversing a commit, yours or someone else's</td><td>The reversal becomes a new commit that everyone receives. A developer checks that nobody depends on it first.</td></tr><tr class="item"><td>Committing to the wrong branch</td><td>Fixing it needs reverse commits and merges. Stop and tell a developer.</td></tr><tr class="item"><td>Changing Unity project settings, packages or the <code>ProjectSettings</code> folder</td><td>These settings apply to everyone who opens the project.</td></tr><tr class="item"><td>"Authorization failed" or "forbidden"</td><td>Your account may be missing access to that location. Don't look for another login.</td></tr><tr class="item"><td>Anything not in this guide</td><td>Look it up with <code>svn help &lt;command&gt;</code> if you like, but ask before running it.</td></tr></table></div></section>
 
-<section id="glossary" class="ex searchable">
-<h2>Glossary</h2>
-<p class="desc">Plain meanings for the terms used in this guide.</p>
-<div class="tw">
-<table>
-<tr><th>Term</th><th>Meaning</th></tr>
-<tr><td>Repository</td><td>The shared server copy of the project, with its full history.</td></tr>
-<tr><td>Working copy</td><td>The folder on your computer that you edit. It is linked to the repository through a hidden <code>.svn</code> folder.</td></tr>
-<tr><td>Revision</td><td>A numbered snapshot of the whole repository. Every commit creates the next number, for example r105.</td></tr>
-<tr><td>HEAD</td><td>The latest revision on the server.</td></tr>
-<tr><td>BASE</td><td>The revision your folder was last updated to. <code>svn diff</code> compares your files against it.</td></tr>
-<tr><td>Checkout</td><td>Creating a working copy by downloading a project from the repository for the first time.</td></tr>
-<tr><td>Commit</td><td>Sending your local changes to the repository as a new revision.</td></tr>
-<tr><td>Update</td><td>Downloading other people's changes into your working copy.</td></tr>
-<tr><td>Trunk</td><td>The main line of development. Most teams keep their stable or latest code here.</td></tr>
-<tr><td>Branch</td><td>A copy of the code on the server where work can happen separately from the main line.</td></tr>
-<tr><td>R&amp;D branch</td><td>A branch you create for your own experiments, checked out into its own folder. See <a href="#branching">R&amp;D branch</a>.</td></tr>
-<tr><td>Tag</td><td>A named copy of the code at one moment, usually a release. It isn't meant to be changed.</td></tr>
-<tr><td>Merge</td><td>Applying the changes from one branch to another. A developer job in this guide.</td></tr>
-<tr><td>Conflict</td><td>Two people changed the same file in overlapping ways, and SVN needs a person to choose what to keep.</td></tr>
-<tr><td>Lock</td><td>A claim on a file that stops others from committing it until you release it.</td></tr>
-<tr><td>Property</td><td>A named setting attached to a file or folder, such as <code>svn:ignore</code>.</td></tr>
-<tr><td>External</td><td>A file or folder the project pulls in automatically from another location. Shown as <code>X</code> in <code>svn status</code>. Changing externals is a developer job.</td></tr>
-<tr><td>Unversioned</td><td>A file SVN doesn't track yet. Shown as <code>?</code> in <code>svn status</code>.</td></tr>
-<tr><td>Ignored</td><td>A file SVN is told to skip, such as <code>Library</code>. Shown as <code>I</code> only with <code>--no-ignore</code>.</td></tr>
-<tr><td>Switch</td><td>Pointing your existing project folder at a different branch. See <a href="#switching">Switching branches</a>.</td></tr>
-</table>
-</div>
-</section>
+<section class="topic g-ref nonum" id="errors" data-group="ref"><div class="t-head"><h3>Error lookup</h3></div><p class="use"><strong>Use this when:</strong> SVN printed a message you don't recognize. Message wording can vary slightly between SVN versions.</p><div class="tw"><table class=""><tr><th>Message</th><th>What it means and who fixes it</th><th>Go to</th></tr><tr class="item"><td><code>Working copy locked</code> or <code>E155004</code></td><td><span class="b opt">You can fix</span> A previous command was interrupted. Run <code>svn cleanup</code>, then try again.</td><td><a href="#cleanup">Clean up</a></td></tr><tr class="item"><td><code>E195012</code>, "no common ancestry"</td><td><span class="b opt">You can fix</span> The branch address was wrong. Change only the branch name in your current address.</td><td><a href="#switch">Switch branch</a></td></tr><tr class="item"><td><code>... is out of date</code></td><td><span class="b opt">You can fix</span> Someone committed before you. Update, deal with any conflicts, then commit again.</td><td><a href="#update">Get the latest</a></td></tr><tr class="item"><td><code>... is not a working copy</code></td><td><span class="b opt">You can fix</span> You are not inside a project folder. Use <code>cd</code> to go into it and check with <code>svn info</code>.</td><td><a href="#know">Know where you are</a></td></tr><tr class="item"><td><code>... is not under version control</code></td><td><span class="b opt">You can fix</span> The file is new. Add it with <code>svn add file</code>. If the folder is also new, add the folder, which adds what is inside.</td><td><a href="#work">Do your work</a></td></tr><tr class="item"><td><code>path not found</code> or <code>non-existent in revision</code></td><td><span class="b opt">You can fix</span> A typo in the address, or the path doesn't exist there. Check the parent folder with <code>svn ls</code>.</td><td><a href="#explore">Explore history and the server</a></td></tr><tr class="item"><td><code>Unable to connect to a repository</code> or <code>Could not resolve hostname</code></td><td><span class="b opt">You can fix</span> A network problem. Check your VPN and Wi-Fi and try again. If it keeps failing, ask IT.</td><td></td></tr><tr class="item"><td><code>... is locked by user ...</code></td><td><span class="b rec">Contact the person</span> Someone else holds a lock on that file. Message the person named in the error. Don't force the lock.</td><td><a href="#work">Do your work</a></td></tr><tr class="item"><td><code>Commit blocked by pre-commit hook</code></td><td><span class="b rec">Read, then ask</span> A server rule rejected your commit, for example because of the message format or a forbidden file. Read the message. If it is unclear, ask a developer.</td><td><a href="#commit">Commit your changes</a></td></tr><tr class="item"><td><code>Authorization failed</code> or <code>Access forbidden</code></td><td><span class="b r-ask">Ask a developer</span> Your login may be wrong or your account may lack access to that location. Try again once, carefully, then ask.</td><td><a href="#devonly">Developer-only commands</a></td></tr><tr class="item"><td><code>Tree conflict</code></td><td><span class="b r-ask">Ask a developer</span> Someone moved, renamed or deleted a file you edited.</td><td><a href="#conflicts">Fix conflicts</a></td></tr><tr class="item"><td><code>svn: command not found</code> or <code>command not found: svn</code></td><td><span class="b r-ask">Ask IT or a developer</span> The SVN command-line tools aren't installed or aren't on your path.</td><td></td></tr></table></div></section>
 
-<p class="foot">Maintained by Hardeep Singh. Spotted a mistake or have a suggestion? <a href="https://github.com/2129855/2129855.github.io/issues">Open an issue on GitHub</a>, or ask your team's tech art.<br>Last updated: 19 November 2026. These notes cover standard SVN command-line behavior. Options can differ slightly between SVN versions, so run <code>svn help &lt;command&gt;</code> to check yours. Your team's rules come first: if they differ from this guide, follow them.</p>
+<section class="topic g-ref nonum" id="glossary" data-group="ref"><div class="t-head"><h3>Glossary</h3></div><p class="use"><strong>Use this when:</strong> a word in this guide is new to you.</p><div class="tw"><table class=""><tr><th>Term</th><th>Meaning</th></tr><tr class="item"><td>Repository</td><td>The shared server copy of the project, with its full history.</td></tr><tr class="item"><td>Working copy</td><td>The folder on your computer that you edit. It is linked to the repository through a hidden <code>.svn</code> folder.</td></tr><tr class="item"><td>Revision</td><td>A numbered snapshot of the whole repository. Every commit creates the next number, for example r105.</td></tr><tr class="item"><td>HEAD</td><td>The latest revision on the server.</td></tr><tr class="item"><td>BASE</td><td>The revision your folder was last updated to. <code>svn diff</code> compares your files against it.</td></tr><tr class="item"><td>Checkout</td><td>Creating a working copy by downloading a project from the repository for the first time.</td></tr><tr class="item"><td>Commit</td><td>Sending your local changes to the repository as a new revision.</td></tr><tr class="item"><td>Update</td><td>Downloading other people's changes into your working copy.</td></tr><tr class="item"><td>Trunk</td><td>The main line of development. Most teams keep their stable or latest code here.</td></tr><tr class="item"><td>Branch</td><td>A copy of the code on the server where work can happen separately from the main line.</td></tr><tr class="item"><td>R&amp;D branch</td><td>A branch you create for your own experiments, checked out into its own folder. See <a href="#rnd">R&amp;D branch</a>.</td></tr><tr class="item"><td>Switch</td><td>Pointing your existing project folder at a different branch. See <a href="#switch">Switch branch</a>.</td></tr><tr class="item"><td>Tag</td><td>A named copy of the code at one moment, usually a release. It isn't meant to be changed.</td></tr><tr class="item"><td>Merge</td><td>Applying the changes from one branch to another. A developer job in this guide.</td></tr><tr class="item"><td>Conflict</td><td>Two people changed the same file in overlapping ways, and SVN needs a person to choose what to keep.</td></tr><tr class="item"><td>Lock</td><td>A claim on a file that stops others from committing it until you release it.</td></tr><tr class="item"><td>Property</td><td>A named setting attached to a file or folder, such as <code>svn:ignore</code>.</td></tr><tr class="item"><td>External</td><td>A file or folder the project pulls in automatically from another location. Shown as <code>X</code> in <code>svn status</code>. Changing externals is a developer job.</td></tr><tr class="item"><td>Unversioned</td><td>A file SVN doesn't track yet. Shown as <code>?</code> in <code>svn status</code>.</td></tr><tr class="item"><td>Ignored</td><td>A file SVN is told to skip, such as <code>Library</code>. Shown as <code>I</code> only with <code>--no-ignore</code>.</td></tr><tr class="item"><td>Patch</td><td>A text file listing your edits, made with <code>svn diff</code> and re-applied with <code>svn patch</code>.</td></tr></table></div></section>
+
+</main>
+
+<footer class="foot">
+<p>Maintained by Hardeep Singh. Spotted a mistake or have a suggestion? <a href="https://github.com/2129855/2129855.github.io/issues">Open an issue on GitHub</a>, or ask your team's tech art.</p>
+<p>Last updated: 20 November 2026. These notes cover standard SVN command-line behavior. Options can differ slightly between SVN versions, so run <code>svn help &lt;command&gt;</code> to check yours. Your team's rules come first: if they differ from this guide, follow them.</p>
+</footer>
 
 <script>
 (function () {
-  // Build plain-text search indexes before copy buttons are added to the page.
-  var rows = [];
-  document.querySelectorAll('section.searchable tr').forEach(function (tr) {
-    if (!tr.querySelector('td')) return;
-    rows.push({ el: tr, text: tr.textContent.toLowerCase() });
-  });
-  var proseItems = [];
-  document.querySelectorAll('.prose').forEach(function (el) {
-    proseItems.push({ el: el, text: el.textContent.toLowerCase() });
-  });
+  function norm(t) { return t.toLowerCase().replace(/\s+/g, ' '); }
 
+  // Build the search index first, before copy buttons add extra text to the page.
+  var topics = [].slice.call(document.querySelectorAll('section.topic')).map(function (t) {
+    return {
+      el: t,
+      group: t.getAttribute('data-group'),
+      text: norm(t.textContent),
+      items: [].slice.call(t.querySelectorAll('.item')).map(function (i) { return { el: i, text: norm(i.textContent) }; }),
+      details: [].slice.call(t.querySelectorAll('details')).map(function (d) { return { el: d, text: norm(d.textContent), open: d.open }; })
+    };
+  });
+  var groups = [].slice.call(document.querySelectorAll('h2.group'));
+  var topBlocks = [].slice.call(document.querySelectorAll('.top-blocks'));
+
+  // Copy buttons
   function copyText(text, btn) {
     function ok() {
       btn.textContent = 'Copied';
@@ -521,8 +332,7 @@
       fallback();
     }
   }
-
-  document.querySelectorAll('code.cmd').forEach(function (c) {
+  [].slice.call(document.querySelectorAll('code.cmd')).forEach(function (c) {
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'copy';
@@ -532,26 +342,36 @@
     c.after(b);
   });
 
+  // Search
   var q = document.getElementById('q');
   var none = document.getElementById('nores');
-  var sections = document.querySelectorAll('section.searchable');
 
   function run() {
-    var term = q.value.trim().toLowerCase();
+    var term = norm(q.value.trim());
     var any = false;
-    proseItems.forEach(function (p) {
-      var show = term === '' || p.text.indexOf(term) !== -1;
-      p.el.hidden = !show;
+    topBlocks.forEach(function (b) { b.hidden = term !== ''; });
+    topics.forEach(function (t) {
+      var show = term === '' || t.text.indexOf(term) !== -1;
+      t.el.hidden = !show;
       if (show) any = true;
-    });
-    rows.forEach(function (r) { r.el.hidden = term !== '' && r.text.indexOf(term) === -1; });
-    sections.forEach(function (sec) {
-      var shown = 0;
-      sec.querySelectorAll('tr').forEach(function (tr) {
-        if (tr.querySelector('td') && !tr.hidden) shown++;
+      var matched = t.items.filter(function (i) { return term !== '' && i.text.indexOf(term) !== -1; });
+      t.items.forEach(function (i) {
+        var isRow = i.el.tagName === 'TR';
+        i.el.classList.remove('dim', 'hit');
+        i.el.hidden = false;
+        if (term !== '' && matched.length) {
+          if (matched.indexOf(i) !== -1) { i.el.classList.add('hit'); }
+          else if (isRow) { i.el.hidden = true; }
+          else { i.el.classList.add('dim'); }
+        }
       });
-      sec.hidden = shown === 0;
-      if (shown) any = true;
+      t.details.forEach(function (d) {
+        d.el.open = (term !== '' && d.text.indexOf(term) !== -1) ? true : d.open;
+      });
+    });
+    groups.forEach(function (g) {
+      var has = topics.some(function (t) { return t.group === g.getAttribute('data-group') && !t.el.hidden; });
+      g.hidden = !has;
     });
     none.hidden = term === '' || any;
   }
@@ -563,6 +383,44 @@
   document.addEventListener('keydown', function (e) {
     var tag = document.activeElement ? document.activeElement.tagName : '';
     if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') { e.preventDefault(); q.focus(); }
+  });
+
+  // "Back to where you were" returns to the topic you came from
+  var cameFrom = {};
+  window.addEventListener('hashchange', function (e) {
+    var to = location.hash.slice(1), from = '';
+    try { from = new URL(e.oldURL).hash.slice(1); } catch (x) {}
+    if (from && to && from !== to) { cameFrom[to] = from; }
+  });
+  [].slice.call(document.querySelectorAll('a.back')).forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var topic = a.closest('section.topic');
+      var target = topic ? cameFrom[topic.id] : '';
+      location.hash = target ? target : 'top';
+    });
+  });
+
+  // Keep anchor jumps clear of the sticky bar, whatever height it has
+  var bar = document.querySelector('.bar');
+  function setBarHeight() { document.documentElement.style.setProperty('--bar-h', bar.offsetHeight + 'px'); }
+  setBarHeight();
+  window.addEventListener('resize', setBarHeight);
+  if (window.ResizeObserver) { new ResizeObserver(setBarHeight).observe(bar); }
+
+  // Fade the right edge of the shortcut row on phones until it is scrolled to the end
+  var links = document.querySelector('.links');
+  function edge() { links.classList.toggle('at-end', links.scrollLeft + links.clientWidth >= links.scrollWidth - 4); }
+  links.addEventListener('scroll', edge);
+  window.addEventListener('resize', edge);
+  edge();
+
+  // Open every fold when printing
+  window.addEventListener('beforeprint', function () {
+    [].slice.call(document.querySelectorAll('details')).forEach(function (d) { d.setAttribute('data-was', d.open ? '1' : '0'); d.open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    [].slice.call(document.querySelectorAll('details')).forEach(function (d) { d.open = d.getAttribute('data-was') === '1'; });
   });
 })();
 </script>
