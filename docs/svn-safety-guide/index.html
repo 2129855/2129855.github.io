@@ -83,7 +83,9 @@
   h2.group { font-size: 27px; line-height: 1.2; margin: 60px 0 4px; padding: 2px 0 2px 14px; border-left: 6px solid var(--gc);
              scroll-margin-top: calc(var(--bar-h, 110px) + 16px); }
   .gdesc { max-width: 66ch; color: var(--muted); margin: 6px 0 14px; }
-  .topic { padding: 26px 0 6px; border-top: 1px solid var(--line); scroll-margin-top: calc(var(--bar-h, 110px) + 16px); }
+  .topic { margin-top: 330px; padding: 32px 0 6px; border-top: 1px solid var(--line); scroll-margin-top: calc(var(--bar-h, 110px) + 16px); }
+  .gdesc + .topic { margin-top: 108px; }
+  .topic + h2.group { margin-top: 390px; }
   .t-head { display: flex; align-items: center; gap: 12px; }
   .topic.nonum .t-head { border-left: 5px solid var(--gc); padding-left: 12px; }
   .tnum { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--gt); color: var(--gc);
@@ -157,7 +159,7 @@
   tr.hit td { background: rgba(9,105,218,.08); }
   li.step.dim { opacity: .4; }
 
-  .foot { color: var(--muted); font-size: 14px; margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 70ch; }
+  .foot { color: var(--muted); font-size: 14px; margin-top: 360px; padding-top: 18px; border-top: 1px solid var(--line); max-width: 70ch; }
 
   /* phones */
   @media (max-width: 640px) {
@@ -166,6 +168,9 @@
     .qc li { grid-template-columns: 1fr; gap: 3px; }
     .badges { margin-left: 0; }
     h2.group { font-size: 23px; }
+    .topic { margin-top: 216px; }
+    .gdesc + .topic { margin-top: 84px; }
+    .topic + h2.group { margin-top: 270px; }
     .links { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px; gap: 5px;
              -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent);
              mask-image: linear-gradient(to right, #000 calc(100% - 26px), transparent); }
@@ -221,7 +226,8 @@
     .side, #nores, .copy { display: none !important; }
     .t-cols:not(.single) { display: block; }
     .t-side { position: static; max-height: none; overflow: visible; }
-    .topic { break-inside: auto; }
+    .topic { break-inside: auto; margin-top: 28px; }
+    .topic + h2.group { margin-top: 36px; }
     li.step, tr, .callout { break-inside: avoid; }
     h2.group, h3 { break-after: avoid; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -507,7 +513,7 @@ the server's version of the lines
     for (var i = 0; i < topics.length; i++) {
       var el = topics[i].el;
       if (el.hidden) continue;
-      if (el.getBoundingClientRect().top <= 90) { current = el.id; } else { break; }
+      if (el.getBoundingClientRect().top <= Math.max(90, window.innerHeight * 0.35)) { current = el.id; } else { break; }
     }
     sideLinks.forEach(function (a) {
       var on = a.getAttribute('data-topic') === current;
